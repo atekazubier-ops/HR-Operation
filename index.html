@@ -279,21 +279,31 @@
             });
             
             document.getElementById('add-employee-form').onsubmit = (e) => {
-                e.preventDefault();
-                const newEmp = {
-                    name: document.getElementById('emp-name').value,
-                    dept: document.getElementById('emp-dept').value,
-                    phone: document.getElementById('emp-phone').value,
-                    birthDate: document.getElementById('emp-birth').value,
-                    leaveBal: 30,
-                    schedule: { sat: "off", sun: "off", mon: "off", tue: "off", wed: "off", thu: "off", fri: "off" }
-                };
-                db.ref('employees').push(newEmp).then(() => {
-                    document.getElementById('add-employee-form').reset();
-                    showSection('employees');
-                });
-            };
+    e.preventDefault();
+    const newEmp = {
+        name: document.getElementById('emp-name').value,
+        empIdNum: document.getElementById('emp-id-num').value, // الرقم الوظيفي
+        birthDate: document.getElementById('emp-birth').value,
+        phone: document.getElementById('emp-phone').value,
+        address: document.getElementById('emp-address').value, // العنوان
+        dept: document.getElementById('emp-dept').value,
+        jobTitle: document.getElementById('emp-title').value, // المسمى الوظيفي
+        salary: document.getElementById('emp-salary').value, // المرتب
+        joinDate: document.getElementById('emp-join-date').value, // تاريخ المباشرة
+        bloodType: document.getElementById('emp-blood').value, // فصيلة الدم
+        nationality: document.getElementById('emp-nationality').value, // الجنسية
+        leaveBal: document.getElementById('emp-leave-bal').value || 30,
+        schedule: { sat: "off", sun: "off", mon: "off", tue: "off", wed: "off", thu: "off", fri: "off" }
+    };
 
+    db.ref('employees').push(newEmp).then(() => {
+        alert("تمت إضافة الموظف بنجاح");
+        document.getElementById('add-employee-form').reset();
+        showSection('employees');
+    }).catch(error => {
+        alert("خطأ في الحفظ: " + error.message);
+    });
+};
             setInterval(() => { document.getElementById('live-time').innerText = new Date().toLocaleString('ar-SA'); }, 1000);
         }
 
@@ -429,4 +439,5 @@
     </script>
 </body>
 </html>
+
 
