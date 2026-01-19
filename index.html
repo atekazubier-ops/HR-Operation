@@ -1,199 +1,203 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <!-- Firebase SDKs -->
+    <!-- Firebase SDKs (Compat Version) -->
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام HR السحابي المطور</title>
+    <title>نظام HR المتكامل - إدارة الموظفين</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     
     <style>
-        body { font-family: 'Cairo', sans-serif; background-color: #f8fafc; color: #1e293b; overflow-x: hidden; }
-        .nav-card.active { background: #eff6ff; color: #2563eb; border-left: 4px solid #2563eb; }
-        .sidebar { transition: all 0.3s ease; }
-        .glass-modal { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(15px); }
-        .btn-primary { background: linear-gradient(135deg, #2563eb, #1e40af); transition: transform 0.2s; }
-        .btn-primary:hover { transform: scale(1.02); }
-        .stat-card { border: 1px solid #e2e8f0; transition: all 0.3s; }
-        .stat-card:hover { transform: translateY(-4px); box-shadow: 0 12px 20px -10px rgba(0,0,0,0.05); }
+        :root { --primary: #2563eb; --secondary: #64748b; --accent: #facc15; --bg-main: #f8fafc; }
+        body { font-family: 'Cairo', sans-serif; background-color: var(--bg-main); color: #1e293b; margin: 0; padding: 0; }
+        
+        .sidebar-link { transition: all 0.3s ease; cursor: pointer; display: flex; align-items: center; gap: 0.75rem; padding: 1rem; border-radius: 0.75rem; font-weight: 700; color: #cbd5e1; }
+        .sidebar-link:hover { background-color: rgba(255,255,255,0.05); color: white; }
+        .sidebar-link.active { background: linear-gradient(90deg, #1e40af 0%, #2563eb 100%); border-left: 4px solid var(--accent); color: white; }
+        
+        .dashboard-grid-title { border-right: 4px solid #2563eb; padding-right: 10px; margin-bottom: 1.5rem; font-weight: 800; color: #1e293b; }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        .animate-fade { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .shift-box { min-width: 95px; padding: 6px; border-radius: 8px; text-align: center; font-size: 9px; font-weight: 800; border: 1px solid transparent; }
+        .shift-8-3 { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
+        .shift-9-4 { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+        .shift-12-7 { background: #fffbeb; color: #854d0e; border-color: #fef08a; }
+        .shift-4-11 { background: #faf5ff; color: #5b21b6; border-color: #e9d5ff; }
+        .shift-7-2 { background: #fff1f2; color: #9f1239; border-color: #fecaca; }
+        .shift-off { background: #f1f5f9; color: #64748b; border-color: #e2e8f0; }
+
+        .stats-card { background: white; padding: 1.5rem; border-radius: 1.5rem; border: 1px solid #e2e8f0; transition: transform 0.3s; }
+        .stats-card:hover { transform: translateY(-5px); }
     </style>
 </head>
-<body class="flex flex-col md:flex-row min-h-screen">
+<body class="flex min-h-screen overflow-hidden bg-[#f8fafc]">
 
     <!-- Sidebar -->
-    <aside class="w-full md:w-72 bg-white border-l flex-shrink-0 z-50 sidebar">
-        <div class="p-8">
-            <div class="flex items-center gap-3 mb-12">
-                <div class="w-12 h-12 btn-primary rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-lg">HR</div>
-                <div>
-                    <h1 class="text-xl font-black text-slate-800 leading-none">Cloud HR</h1>
-                    <span class="text-[10px] text-blue-600 font-bold uppercase tracking-widest">Enterprise v4.0</span>
-                </div>
-            </div>
-
-            <nav class="space-y-2">
-                <button onclick="showSection('dashboard')" id="btn-dashboard" class="nav-card active w-full flex items-center gap-4 p-4 rounded-2xl text-sm font-bold text-slate-600 hover:bg-slate-50">
-                    <span class="text-lg">📊</span> لوحة التحكم
-                </button>
-                <button onclick="showSection('employees')" id="btn-employees" class="nav-card w-full flex items-center gap-4 p-4 rounded-2xl text-sm font-bold text-slate-600 hover:bg-slate-50">
-                    <span class="text-lg">👥</span> الموظفين
-                </button>
-                <button onclick="showSection('birthdays')" id="btn-birthdays" class="nav-card w-full flex items-center gap-4 p-4 rounded-2xl text-sm font-bold text-slate-600 hover:bg-slate-50">
-                    <span class="text-lg">🎂</span> أعياد الميلاد
-                </button>
-            </nav>
+    <aside class="w-72 bg-[#0f172a] text-white flex-shrink-0 flex flex-col h-screen z-50 shadow-2xl border-l border-slate-800">
+        <div class="p-8 text-center border-b border-slate-800/50">
+            <h1 class="text-3xl font-black italic tracking-tighter text-white">HR <span class="text-blue-500 underline decoration-2 underline-offset-4">CLOUD</span></h1>
+            <p class="text-[9px] text-slate-500 mt-2 font-bold tracking-[0.2em] uppercase">Enterprise Edition</p>
         </div>
+        
+        <nav class="flex-grow p-4 space-y-1.5 mt-4 overflow-y-auto custom-scrollbar">
+            <div onclick="showSection('dashboard')" id="nav-dashboard" class="sidebar-link active text-white"><span>📊</span> لوحة التحكم</div>
+            <div onclick="showSection('employees')" id="nav-employees" class="sidebar-link text-white"><span>👥</span> الموظفين</div>
+            <div onclick="showSection('actions')" id="nav-actions" class="sidebar-link text-white"><span>🚨</span> الإجراءات الإدارية</div>
+            <div onclick="showSection('leaves')" id="nav-leaves" class="sidebar-link text-white"><span>🌴</span> الإجازات</div>
+        </nav>
     </aside>
 
-    <!-- Main Content -->
-    <main class="flex-grow flex flex-col min-h-screen relative">
-        <header class="h-24 flex items-center justify-between px-10 bg-white/50 backdrop-blur-sm sticky top-0 z-40">
-            <h2 id="section-title" class="text-2xl font-black text-slate-800">لوحة التحكم</h2>
-            <div class="flex items-center gap-6">
-                <div class="text-right">
-                    <p id="current-date" class="text-sm font-bold text-slate-500"></p>
-                    <p id="cloud-indicator" class="text-[9px] text-green-600 font-black uppercase flex items-center justify-end gap-1">
-                        <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> مزامنة مباشرة
-                    </p>
-                </div>
+    <main class="flex-grow h-screen overflow-hidden flex flex-col">
+        <header class="bg-white border-b border-slate-200 px-8 py-5 flex justify-between items-center shadow-sm z-40">
+            <div>
+                <h2 id="section-title" class="text-2xl font-black text-slate-800 uppercase tracking-tighter">لوحة التحكم</h2>
+                <p id="live-time" class="text-[10px] text-blue-500 font-bold uppercase mt-1"></p>
             </div>
         </header>
 
-        <section class="p-10">
-            <!-- Dashboard Section -->
-            <div id="section-dashboard" class="space-y-10">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div class="stat-card bg-white p-8 rounded-[2.5rem] flex flex-col justify-between h-44">
-                        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-xl">👥</div>
-                        <div>
-                            <p class="text-xs font-bold text-slate-400">إجمالي الموظفين</p>
-                            <h3 id="stat-emp-count" class="text-4xl font-black text-slate-800">0</h3>
+        <div class="flex-grow overflow-y-auto custom-scrollbar p-8 bg-[#f8fafc]">
+            <div id="sections-content">
+                
+                <!-- Dashboard Section -->
+                <div id="section-dashboard" class="space-y-8 animate-fade">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="stats-card flex items-center gap-4">
+                            <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-xl">👥</div>
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">إجمالي الموظفين</p>
+                                <h3 id="stat-total-emp" class="text-2xl font-black text-slate-800">0</h3>
+                            </div>
+                        </div>
+                        <div class="stats-card flex items-center gap-4">
+                            <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center text-xl">🌴</div>
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">إجازات اليوم</p>
+                                <h3 id="stat-active-leaves" class="text-2xl font-black text-slate-800">0</h3>
+                            </div>
+                        </div>
+                        <div class="stats-card flex items-center gap-4">
+                            <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-xl">📝</div>
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">الأذونات</p>
+                                <h3 id="stat-permissions" class="text-2xl font-black text-slate-800">0</h3>
+                            </div>
+                        </div>
+                        <div class="stats-card flex items-center gap-4">
+                            <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center text-xl">🚨</div>
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">الإجراءات</p>
+                                <h3 id="stat-actions" class="text-2xl font-black text-slate-800">0</h3>
+                            </div>
                         </div>
                     </div>
-                    <div class="stat-card bg-white p-8 rounded-[2.5rem] flex flex-col justify-between h-44 border-t-4 border-pink-500">
-                        <div class="w-12 h-12 bg-pink-50 text-pink-500 rounded-2xl flex items-center justify-center text-xl">🎂</div>
-                        <div>
-                            <p class="text-xs font-bold text-slate-400">ميلاد هذا الشهر</p>
-                            <h3 id="stat-bd-count" class="text-4xl font-black text-slate-800">0</h3>
-                        </div>
-                    </div>
-                    <div class="stat-card bg-white p-8 rounded-[2.5rem] flex flex-col justify-between h-44">
-                        <div class="w-12 h-12 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center text-xl">📝</div>
-                        <div>
-                            <p class="text-xs font-bold text-slate-400">إجراءات إدارية</p>
-                            <h3 id="stat-action-count" class="text-4xl font-black text-slate-800">0</h3>
+
+                    <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+                        <h4 class="dashboard-grid-title">🗓️ خريطة شفتات الدوام الأسبوعي</h4>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-right">
+                                <thead>
+                                    <tr class="text-[10px] font-black text-slate-400 border-b border-slate-100 uppercase tracking-widest">
+                                        <th class="pb-4 pr-4">الموظف / القسم</th>
+                                        <th class="pb-4 text-center">السبت</th>
+                                        <th class="pb-4 text-center">الأحد</th>
+                                        <th class="pb-4 text-center">الاثنين</th>
+                                        <th class="pb-4 text-center">الثلاثاء</th>
+                                        <th class="pb-4 text-center">الأربعاء</th>
+                                        <th class="pb-4 text-center">الخميس</th>
+                                        <th class="pb-4 text-center">الجمعة</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dash-weekly-schedule"></tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                        <h4 class="font-black text-slate-800 mb-6 flex items-center gap-2">🎉 احتفالات قادمة</h4>
-                        <div id="dash-birthdays-list" class="space-y-4"></div>
+                <!-- Employees Management Section -->
+                <div id="section-employees" class="hidden animate-fade space-y-6">
+                    <div class="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                        <div class="relative w-full md:w-96">
+                            <span class="absolute inset-y-0 right-4 flex items-center text-slate-400">🔍</span>
+                            <input type="text" id="employee-search" oninput="renderEmployeesTable()" placeholder="بحث عن موظف بالاسم أو القسم..." 
+                                   class="w-full pr-12 pl-4 py-3 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-bold">
+                        </div>
+                        <button onclick="showSection('add-employee')" class="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-2xl font-black flex items-center justify-center gap-2 transition-all">
+                            <span>➕</span> إضافة موظف جديد
+                        </button>
                     </div>
-                    <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                        <h4 class="font-black text-slate-800 mb-6 flex items-center gap-2">🔔 آخر التنبيهات</h4>
-                        <div id="recent-actions-list" class="space-y-4"></div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Employees Section -->
-            <div id="section-employees" class="hidden space-y-6">
-                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-                    <input type="text" id="empSearch" oninput="renderEmployees()" placeholder="ابحث بالاسم أو القسم أو الهوية..." class="w-full md:w-96 p-4 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-50">
-                    <button onclick="openModal('addEmpModal')" class="btn-primary text-white px-8 py-4 rounded-2xl font-black text-sm shadow-xl shadow-blue-100 w-full md:w-auto">إضافة موظف شامل</button>
-                </div>
-                <div class="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm">
-                    <table class="w-full text-right">
-                        <thead class="bg-slate-50/50 border-b">
-                            <tr>
-                                <th class="p-6 text-xs font-black text-slate-500 uppercase tracking-widest">الموظف</th>
-                                <th class="p-6 text-xs font-black text-slate-500 uppercase tracking-widest">المسمى والعمل</th>
-                                <th class="p-6 text-xs font-black text-slate-500 uppercase tracking-widest">الجنسية</th>
-                                <th class="p-6 text-xs font-black text-slate-500 uppercase tracking-widest">التحكم</th>
-                            </tr>
-                        </thead>
-                        <tbody id="empTableBody" class="divide-y divide-slate-50"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Birthdays Section -->
-            <div id="section-birthdays" class="hidden space-y-8">
-                <div class="bg-gradient-to-br from-pink-500 to-rose-600 p-12 rounded-[3rem] text-white shadow-2xl shadow-pink-100 relative overflow-hidden">
-                    <div class="relative z-10">
-                        <h3 class="text-4xl font-black mb-2">أعياد الميلاد</h3>
-                        <p class="text-pink-100 font-bold">كل عام وفريقنا بألف خير! 🎈</p>
+                    <div class="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+                        <table class="w-full text-right">
+                            <thead class="bg-slate-50 border-b border-slate-100">
+                                <tr class="text-[11px] font-black text-slate-400 uppercase tracking-widest">
+                                    <th class="py-5 pr-8">الموظف</th>
+                                    <th class="py-5">القسم</th>
+                                    <th class="py-5">رقم الهاتف</th>
+                                    <th class="py-5">رصيد الإجازات</th>
+                                    <th class="py-5 pl-8 text-center">إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="employees-table-body">
+                                <!-- Data will be injected here -->
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="absolute -right-10 -bottom-10 text-[12rem] opacity-20 transform -rotate-12">🎂</div>
                 </div>
-                <div id="birthdaysContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"></div>
+
+                <!-- Add Employee Section (Placeholder) -->
+                <div id="section-add-employee" class="hidden animate-fade">
+                    <div class="max-w-2xl mx-auto bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-xl">
+                        <h3 class="text-2xl font-black text-slate-800 mb-8 flex items-center gap-3">📝 إضافة ملف موظف جديد</h3>
+                        <form id="add-employee-form" class="space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="space-y-2">
+                                    <label class="text-xs font-black text-slate-500 uppercase">اسم الموظف الكامل</label>
+                                    <input type="text" id="emp-name" required class="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-blue-500 outline-none font-bold">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-xs font-black text-slate-500 uppercase">القسم / الوظيفة</label>
+                                    <input type="text" id="emp-dept" required class="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-blue-500 outline-none font-bold">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-xs font-black text-slate-500 uppercase">رقم الهاتف</label>
+                                    <input type="text" id="emp-phone" class="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-blue-500 outline-none font-bold text-left" dir="ltr">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-xs font-black text-slate-500 uppercase">تاريخ الميلاد</label>
+                                    <input type="date" id="emp-birth" class="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-blue-500 outline-none font-bold">
+                                </div>
+                            </div>
+                            <div class="flex gap-4 pt-6">
+                                <button type="submit" class="flex-grow bg-blue-600 hover:bg-blue-700 text-white p-5 rounded-2xl font-black transition-all">حفظ البيانات</button>
+                                <button type="button" onclick="showSection('employees')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-8 rounded-2xl font-bold transition-all">إلغاء</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="section-actions" class="hidden"></div>
+                <div id="section-leaves" class="hidden"></div>
+
             </div>
-        </section>
+        </div>
     </main>
 
-    <!-- Modal: Add Comprehensive Employee -->
-    <div id="addEmpModal" class="fixed inset-0 glass-modal hidden z-[100] flex items-center justify-center p-6">
-        <div class="bg-white w-full max-w-5xl rounded-[3rem] shadow-2xl border border-white overflow-hidden flex flex-col h-full max-h-[90vh]">
-            <div class="p-10 border-b flex justify-between items-center bg-slate-50">
-                <h3 class="text-2xl font-black text-slate-800">إنشاء سجل موظف سحابي</h3>
-                <button onclick="closeModal('addEmpModal')" class="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm text-2xl font-bold">&times;</button>
-            </div>
-            <form id="addEmpForm" onsubmit="saveEmployee(event)" class="p-10 grid grid-cols-1 md:grid-cols-3 gap-6 overflow-y-auto">
-                <!-- الـ 11 متطلب المذكورة في ملفك -->
-                <div class="space-y-2"><label class="text-[10px] font-black text-slate-400 uppercase">الاسم الكامل</label><input type="text" id="f_name" class="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none" required></div>
-                <div class="space-y-2"><label class="text-[10px] font-black text-slate-400 uppercase">رقم الهوية</label><input type="text" id="f_id" class="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none" required></div>
-                <div class="space-y-2"><label class="text-[10px] font-black text-slate-400 uppercase">تاريخ الميلاد</label><input type="date" id="f_birth_date" class="w-full p-4 bg-pink-50/50 rounded-2xl border-none outline-none" required></div>
-                
-                <div class="space-y-2"><label class="text-[10px] font-black text-slate-400 uppercase">الجنسية</label><input type="text" id="f_nat" class="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none"></div>
-                <div class="space-y-2"><label class="text-[10px] font-black text-slate-400 uppercase">فصيلة الدم</label><input type="text" id="f_blood" class="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none"></div>
-                <div class="space-y-2"><label class="text-[10px] font-black text-slate-400 uppercase">العنوان</label><input type="text" id="f_address" class="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none"></div>
-                
-                <div class="space-y-2"><label class="text-[10px] font-black text-slate-400 uppercase">القسم</label><input type="text" id="f_dept" class="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none"></div>
-                <div class="space-y-2"><label class="text-[10px] font-black text-slate-400 uppercase">المسمى الوظيفي</label><input type="text" id="f_pos" class="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none"></div>
-                <div class="space-y-2"><label class="text-[10px] font-black text-slate-400 uppercase">الراتب الأساسي</label><input type="number" id="f_salary" class="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none"></div>
-                
-                <div class="space-y-2"><label class="text-[10px] font-black text-slate-400 uppercase">تاريخ المباشرة</label><input type="date" id="f_start_date" class="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none"></div>
-                <div class="space-y-2"><label class="text-[10px] font-black text-slate-400 uppercase">رصيد الإجازات</label><input type="number" id="f_leave_bal" value="30" class="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none"></div>
-                
-                <button type="submit" class="md:col-span-3 btn-primary text-white py-6 rounded-[2rem] font-black mt-6 shadow-2xl shadow-blue-200">حفظ الموظف في السحابة ✅</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal: Profile Details -->
-    <div id="detailsModal" class="fixed inset-0 glass-modal hidden z-[100] flex items-center justify-center p-6">
-        <div class="bg-slate-50 w-full max-w-6xl h-[90vh] rounded-[3.5rem] shadow-2xl overflow-hidden flex flex-col border border-white">
-            <div class="p-10 bg-white border-b flex justify-between items-center">
-                <div class="flex items-center gap-6">
-                    <div id="prof-avatar" class="w-16 h-16 btn-primary rounded-3xl flex items-center justify-center text-2xl text-white shadow-xl">👤</div>
-                    <div>
-                        <h3 id="prof-name" class="text-3xl font-black text-slate-800">--</h3>
-                        <p id="prof-pos" class="text-xs font-black text-blue-600 uppercase tracking-widest"></p>
-                    </div>
-                </div>
-                <button onclick="closeModal('detailsModal')" class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-2xl">&times;</button>
-            </div>
-            <div id="detailsContent" class="flex-grow overflow-y-auto p-10 grid grid-cols-1 lg:grid-cols-12 gap-10">
-                <!-- Content Injected by JS -->
-            </div>
-        </div>
-    </div>
-
     <script>
-        // تكوين Firebase (نفس الإعدادات السحابية لمشروعك)
         const firebaseConfig = {
             apiKey: "AIzaSyAAe-WjGh9PtL932wxJPgLSuaslmJWaDC8",
             authDomain: "hr-operation.firebaseapp.com",
             databaseURL: "https://hr-operation-default-rtdb.firebaseio.com",
             projectId: "hr-operation",
             storageBucket: "hr-operation.firebasestorage.app",
-            messagingSenderId: "498775599728",
             appId: "1:498775599728:web:b195dea758f3cf415162b5"
         };
 
@@ -201,204 +205,138 @@
         const db = firebase.database();
         let employees = [];
 
-        // المزامنة السحابية
-        function initSync() {
-            db.ref('employees_v25_comprehensive').on('value', snapshot => {
-                const val = snapshot.val();
-                employees = val ? Object.entries(val).map(([id, data]) => ({ id, ...data })) : [];
-                renderAll();
+        function initApp() {
+            db.ref('employees').on('value', snapshot => {
+                const data = snapshot.val();
+                employees = data ? Object.entries(data).map(([id, val]) => ({ id, ...val })) : [];
+                refreshDashboard();
+                renderEmployeesTable();
             });
-            document.getElementById('current-date').innerText = new Date().toLocaleDateString('ar-SA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-        }
-
-        function showSection(id) {
-            ['dashboard', 'employees', 'birthdays'].forEach(s => {
-                document.getElementById('section-' + s).classList.add('hidden');
-                document.getElementById('btn-' + s).classList.remove('active');
-            });
-            document.getElementById('section-' + id).classList.remove('hidden');
-            document.getElementById('btn-' + id).classList.add('active');
-            document.getElementById('section-title').innerText = document.getElementById('btn-' + id).innerText.split(' ')[1];
-        }
-
-        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
-        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-
-        // حفظ الموظف مع كل الحقول
-        function saveEmployee(e) {
-            e.preventDefault();
-            const newEmp = {
-                name: document.getElementById('f_name').value,
-                idCard: document.getElementById('f_id').value,
-                birthDate: document.getElementById('f_birth_date').value,
-                nat: document.getElementById('f_nat').value,
-                blood: document.getElementById('f_blood').value,
-                address: document.getElementById('f_address').value,
-                dept: document.getElementById('f_dept').value,
-                pos: document.getElementById('f_pos').value,
-                salary: document.getElementById('f_salary').value,
-                startDate: document.getElementById('f_start_date').value,
-                leaveBal: document.getElementById('f_leave_bal').value,
-                actions: [],
-                overtime: [],
-                leaves: []
-            };
-            db.ref('employees_v25_comprehensive').push(newEmp).then(() => {
-                closeModal('addEmpModal');
-                e.target.reset();
-            });
-        }
-
-        function renderAll() {
-            renderEmployees();
-            renderBirthdays();
-            updateStats();
-        }
-
-        function renderEmployees() {
-            const query = document.getElementById('empSearch').value.toLowerCase();
-            const tbody = document.getElementById('empTableBody');
-            tbody.innerHTML = employees.filter(e => e.name.toLowerCase().includes(query) || e.idCard.includes(query))
-                .map(emp => `
-                    <tr class="hover:bg-blue-50/50 transition-colors">
-                        <td class="p-6">
-                            <div class="font-black text-slate-800">${emp.name}</div>
-                            <div class="text-[10px] text-slate-400 font-bold uppercase">ID: ${emp.idCard}</div>
-                        </td>
-                        <td class="p-6">
-                            <div class="text-xs font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-lg inline-block">${emp.dept}</div>
-                            <div class="text-[10px] text-slate-500 font-bold mt-1">${emp.pos || '---'}</div>
-                        </td>
-                        <td class="p-6 text-xs font-bold text-slate-500">${emp.nat || '---'}</td>
-                        <td class="p-6">
-                            <button onclick="viewProfile('${emp.id}')" class="bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-xl text-xs font-black hover:bg-slate-900 hover:text-white transition-all shadow-sm">الملف الكامل</button>
-                        </td>
-                    </tr>
-                `).join('');
-        }
-
-        function viewProfile(id) {
-            const emp = employees.find(e => e.id === id);
-            document.getElementById('prof-name').innerText = emp.name;
-            document.getElementById('prof-pos').innerText = `${emp.pos || 'موظف'} - ${emp.dept || 'بدون قسم'}`;
             
-            document.getElementById('detailsContent').innerHTML = `
-                <div class="lg:col-span-4 space-y-6">
-                    <div class="bg-white p-8 rounded-[2.5rem] shadow-sm space-y-4">
-                        <h4 class="text-xs font-black text-blue-600 uppercase tracking-widest border-b pb-3 flex items-center gap-2"><span>👤</span> بيانات الهوية</h4>
-                        <div class="flex justify-between"><span class="text-xs text-slate-400 font-bold">الجنسية:</span> <span class="text-xs font-black">${emp.nat || 'غير محدد'}</span></div>
-                        <div class="flex justify-between"><span class="text-xs text-slate-400 font-bold">فصيلة الدم:</span> <span class="text-xs font-black text-rose-600">${emp.blood || 'غير محدد'}</span></div>
-                        <div class="flex justify-between"><span class="text-xs text-slate-400 font-bold">تاريخ الميلاد:</span> <span class="text-xs font-black text-pink-600">${emp.birthDate}</span></div>
-                        <div class="flex justify-between"><span class="text-xs text-slate-400 font-bold">العنوان:</span> <span class="text-xs font-black">${emp.address || 'غير محدد'}</span></div>
-                    </div>
-                    <div class="bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-xl space-y-4">
-                        <h4 class="text-xs font-black text-slate-500 uppercase tracking-widest border-b border-slate-700 pb-3 flex items-center gap-2"><span>💼</span> العقد والراتب</h4>
-                        <div class="flex justify-between"><span class="text-xs text-slate-400 font-bold">الراتب الأساسي:</span> <span class="text-xs font-black text-green-400">${emp.salary} ر.س</span></div>
-                        <div class="flex justify-between"><span class="text-xs text-slate-400 font-bold">رصيد الإجازات:</span> <span class="text-xs font-black text-orange-400">${emp.leaveBal} يوم</span></div>
-                        <div class="flex justify-between"><span class="text-xs text-slate-400 font-bold">تاريخ المباشرة:</span> <span class="text-xs font-black">${emp.startDate}</span></div>
-                    </div>
-                </div>
-                <div class="lg:col-span-8 space-y-6">
-                    <div class="bg-white p-8 rounded-[2.5rem] shadow-sm h-full">
-                        <div class="flex justify-between items-center mb-8">
-                            <h4 class="font-black text-slate-800">السجل الإداري والتنبيهات</h4>
-                            <button onclick="addAction('${emp.id}')" class="text-[10px] font-black bg-rose-50 text-rose-600 px-5 py-2.5 rounded-xl shadow-sm hover:bg-rose-100 transition-colors">+ إضافة إجراء جديد</button>
-                        </div>
-                        <div class="space-y-4">
-                            ${renderActions(emp)}
-                        </div>
-                    </div>
-                </div>
-            `;
-            openModal('detailsModal');
+            document.getElementById('add-employee-form').onsubmit = (e) => {
+                e.preventDefault();
+                const newEmp = {
+                    name: document.getElementById('emp-name').value,
+                    dept: document.getElementById('emp-dept').value,
+                    phone: document.getElementById('emp-phone').value,
+                    birthDate: document.getElementById('emp-birth').value,
+                    leaveBal: 30,
+                    schedule: { sat: "off", sun: "off", mon: "off", tue: "off", wed: "off", thu: "off", fri: "off" }
+                };
+                db.ref('employees').push(newEmp).then(() => {
+                    document.getElementById('add-employee-form').reset();
+                    showSection('employees');
+                });
+            };
+
+            setInterval(() => { document.getElementById('live-time').innerText = new Date().toLocaleString('ar-SA'); }, 1000);
         }
 
-        function renderActions(emp) {
-            if(!emp.actions) return '<div class="text-center py-10"><p class="text-slate-300 italic font-bold">لا توجد سجلات إدارية لهذا الموظف</p></div>';
-            return Object.values(emp.actions).reverse().map(a => `
-                <div class="p-5 bg-slate-50 rounded-2xl flex justify-between items-center border border-slate-100">
-                    <div>
-                        <p class="text-xs font-black text-slate-800">${a.kind}</p>
-                        <p class="text-[10px] text-slate-500 font-bold mt-1">${a.reason}</p>
-                    </div>
-                    <span class="text-[10px] font-black text-slate-400 bg-white px-3 py-1 rounded-lg border">${a.date}</span>
-                </div>
-            `).join('');
-        }
-
-        function addAction(empId) {
-            const kind = prompt("نوع الإجراء (تنبيه، مكافأة، خصم):");
-            const reason = prompt("السبب:");
-            if(kind && reason) {
-                db.ref(`employees_v25_comprehensive/${empId}/actions`).push({
-                    kind, reason, date: new Date().toLocaleDateString('ar-SA')
-                }).then(() => viewProfile(empId));
-            }
-        }
-
-        function renderBirthdays() {
-            const dashList = document.getElementById('dash-birthdays-list');
-            const container = document.getElementById('birthdaysContainer');
-            const currentMonth = new Date().getMonth() + 1;
-
-            const bdays = employees.map(e => {
-                const d = new Date(e.birthDate);
-                return { ...e, month: d.getMonth() + 1, day: d.getDate() };
-            }).sort((a,b) => a.day - b.day);
-
-            const thisMonth = bdays.filter(e => e.month === currentMonth);
-            document.getElementById('stat-bd-count').innerText = thisMonth.length;
-
-            dashList.innerHTML = thisMonth.length > 0 ? thisMonth.map(e => `
-                <div class="p-4 bg-pink-50/50 rounded-2xl border border-pink-100 flex justify-between items-center animate-in slide-in-from-right-2">
-                    <div class="flex items-center gap-3">
-                        <span class="text-2xl">🎁</span>
-                        <div>
-                            <p class="text-xs font-black text-slate-800">${e.name}</p>
-                            <p class="text-[10px] font-bold text-pink-500 uppercase">${e.day} ${new Date(2000, e.month-1).toLocaleString('ar-SA', {month:'long'})}</p>
-                        </div>
-                    </div>
-                    <span class="text-[9px] font-black bg-white px-2 py-1 rounded-lg text-pink-600 shadow-sm border border-pink-100">تحضير هدية</span>
-                </div>
-            `).join('') : '<p class="text-center py-4 text-slate-300 italic">لا توجد أعياد ميلاد هذا الشهر</p>';
-
-            container.innerHTML = bdays.map(e => `
-                <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 text-center hover:scale-105 transition-transform shadow-sm">
-                    <div class="w-16 h-16 bg-pink-50 text-pink-500 rounded-full mx-auto flex items-center justify-center text-3xl mb-4 shadow-inner">🎂</div>
-                    <h5 class="text-sm font-black text-slate-800 mb-1">${e.name}</h5>
-                    <p class="text-[10px] font-bold text-pink-500 uppercase tracking-widest">${e.day} / ${e.month}</p>
-                    <div class="mt-4 text-[9px] font-black bg-slate-50 px-3 py-1 rounded-full text-slate-400">${e.dept}</div>
-                </div>
-            `).join('');
+        function refreshDashboard() {
+            updateStats();
+            renderWeeklySchedule();
         }
 
         function updateStats() {
-            document.getElementById('stat-emp-count').innerText = employees.length;
-            let totalActions = 0;
-            let recentActions = [];
-            employees.forEach(e => {
-                if(e.actions) {
-                    const acts = Object.values(e.actions);
-                    totalActions += acts.length;
-                    acts.forEach(a => recentActions.push({...a, empName: e.name}));
-                }
-            });
-            document.getElementById('stat-action-count').innerText = totalActions;
+            const todayStr = new Date().toLocaleDateString('ar-SA');
+            document.getElementById('stat-total-emp').innerText = employees.length;
             
-            document.getElementById('recent-actions-list').innerHTML = recentActions.slice(-3).reverse().map(a => `
-                <div class="p-4 bg-slate-50 rounded-2xl flex justify-between items-center">
-                    <div class="flex items-center gap-3">
-                        <span class="text-lg">📢</span>
-                        <div>
-                            <p class="text-xs font-black text-slate-800">${a.kind}</p>
-                            <p class="text-[9px] font-bold text-slate-400">${a.empName}</p>
-                        </div>
-                    </div>
-                </div>
-            `).join('') || '<p class="text-center py-4 text-slate-300 italic">لا توجد تنبيهات</p>';
+            let activeLeaves = 0;
+            let totalActions = 0;
+            let totalPermissions = 0;
+            
+            employees.forEach(e => {
+                if(e.leaves && Object.values(e.leaves).some(l => l.date === todayStr)) activeLeaves++;
+                if(e.actions) totalActions += Object.keys(e.actions).length;
+                if(e.permissions) totalPermissions += Object.keys(e.permissions).length;
+            });
+            
+            document.getElementById('stat-active-leaves').innerText = activeLeaves;
+            document.getElementById('stat-actions').innerText = totalActions;
+            document.getElementById('stat-permissions').innerText = totalPermissions;
         }
 
-        window.onload = initSync;
+        function getShiftInfo(shiftValue) {
+            const val = String(shiftValue).trim();
+            if (val.includes("8-3")) return { label: '8 - 3', class: 'shift-8-3', time: '08:00 - 15:00' };
+            if (val.includes("9-4")) return { label: '9 - 4', class: 'shift-9-4', time: '09:00 - 16:00' };
+            if (val.includes("12-7")) return { label: '12 - 7', class: 'shift-12-7', time: '12:00 - 19:00' };
+            if (val.includes("4-11")) return { label: '4 - 11', class: 'shift-4-11', time: '16:00 - 23:00' };
+            if (val.includes("7-2")) return { label: '7 - 2', class: 'shift-7-2', time: '19:00 - 02:00' };
+            return { label: 'إجازة', class: 'shift-off', time: 'مغلق' };
+        }
+
+        function renderWeeklySchedule() {
+            const days = ['sat', 'sun', 'mon', 'tue', 'wed', 'thu', 'fri'];
+            const container = document.getElementById('dash-weekly-schedule');
+            container.innerHTML = employees.map((e) => {
+                const schedule = e.schedule || {};
+                return `
+                <tr class="border-b border-slate-50 hover:bg-slate-50/50 transition-all">
+                    <td class="py-5 pr-4 min-w-[150px]">
+                        <p class="font-black text-slate-800 text-sm">${e.name}</p>
+                        <p class="text-[9px] text-blue-500 font-bold uppercase">${e.dept}</p>
+                    </td>
+                    ${days.map(d => {
+                        const shift = getShiftInfo(schedule[d]);
+                        return `<td class="py-5 text-center px-1"><div class="shift-box ${shift.class}">${shift.label}</div></td>`;
+                    }).join('')}
+                </tr>`;
+            }).join('');
+        }
+
+        function renderEmployeesTable() {
+            const searchTerm = document.getElementById('employee-search').value.toLowerCase();
+            const container = document.getElementById('employees-table-body');
+            
+            const filtered = employees.filter(e => 
+                e.name.toLowerCase().includes(searchTerm) || 
+                (e.dept && e.dept.toLowerCase().includes(searchTerm))
+            );
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<tr><td colspan="5" class="py-12 text-center text-slate-400 font-bold">لا يوجد موظفين بهذا الاسم</td></tr>';
+                return;
+            }
+
+            container.innerHTML = filtered.map(e => `
+                <tr class="border-b border-slate-50 hover:bg-slate-50/50 transition-all group">
+                    <td class="py-6 pr-8">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center font-black text-xs uppercase">${e.name.substring(0,2)}</div>
+                            <span class="font-black text-slate-800 text-sm">${e.name}</span>
+                        </div>
+                    </td>
+                    <td class="py-6 font-bold text-slate-500 text-xs uppercase">${e.dept || '-'}</td>
+                    <td class="py-6 font-bold text-slate-500 text-xs" dir="ltr">${e.phone || '-'}</td>
+                    <td class="py-6">
+                        <span class="px-3 py-1 rounded-full ${parseInt(e.leaveBal) < 5 ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'} text-[10px] font-black">
+                            ${e.leaveBal || 30} يوم
+                        </span>
+                    </td>
+                    <td class="py-6 pl-8 text-center">
+                        <button class="text-slate-400 hover:text-blue-600 transition-colors p-2">⚙️</button>
+                        <button onclick="deleteEmployee('${e.id}')" class="text-slate-400 hover:text-red-600 transition-colors p-2">🗑️</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function deleteEmployee(id) {
+            if(confirm("هل أنت متأكد من حذف هذا الموظف؟ لا يمكن التراجع عن هذا الإجراء.")) {
+                db.ref('employees/' + id).remove();
+            }
+        }
+
+        function showSection(id) {
+            document.querySelectorAll('#sections-content > div').forEach(s => s.classList.add('hidden'));
+            document.getElementById('section-' + id).classList.remove('hidden');
+            document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+            document.getElementById('nav-' + id)?.classList.add('active');
+            document.getElementById('section-title').innerText = document.getElementById('nav-' + id)?.innerText.replace(/[^أ-ي\s]/g, '').trim() || 'إدارة الموظفين';
+        }
+
+        window.onload = initApp;
     </script>
 </body>
 </html>
