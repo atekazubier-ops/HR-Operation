@@ -108,3 +108,88 @@
         <a href="#" class="nav-item"><i class="fas fa-users"></i> المستخدمين</a>
         <a href="#" class="nav-item"><i class="fas fa-chart-line"></i> الإحصائيات</a>
         <a href="#" class="nav-item"><i class="fas fa-cog"></i> الإعدادات</a>
+    </div>
+
+    <div class="main-content">
+        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+            <h1 style="font-size: 1.5rem;">لوحة المعلومات العامة</h1>
+            <div id="user-profile">مدير النظام <i class="fas fa-user-circle"></i></div>
+        </header>
+
+        <div class="stats-grid">
+            <div class="card">
+                <h3>إجمالي المستخدمين</h3>
+                <div class="value" id="userCount">0</div>
+                <span style="color: green; font-size: 0.8rem;">↑ 12% هذا الشهر</span>
+            </div>
+            <div class="card">
+                <h3>الطلبات الجديدة</h3>
+                <div class="value">9,526</div>
+                <span style="color: green; font-size: 0.8rem;">↑ 8.1%</span>
+            </div>
+            <div class="card">
+                <h3>الأرباح المتوقعة</h3>
+                <div class="value">$123.6k</div>
+                <span style="color: red; font-size: 0.8rem;">↓ 10.6%</span>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3>إضافة مستخدم جديد للنظام</h3>
+            <input type="text" id="userName" placeholder="اسم المستخدم الجديد...">
+            <button id="saveButton">تحديث البيانات في Firebase</button>
+            <p id="status" style="margin-top: 10px; font-size: 0.9rem;"></p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCy5VroP_MGxOXUHxN0KJLStmGE_iV0UFY",
+            authDomain: "test-81dcc.firebaseapp.com",
+            projectId: "test-81dcc",
+            storageBucket: "test-81dcc.firebasestorage.app",
+            messagingSenderId: "462100667219",
+            appId: "1:462100667219:web:1cc7819a81799e3022dfa6",
+            measurementId: "G-2M9HZYTYTN"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const btn = document.getElementById('saveButton');
+        const input = document.getElementById('userName');
+        const status = document.getElementById('status');
+        const userCountDisplay = document.getElementById('userCount');
+
+        // تحديث العداد تلقائياً عند إضافة بيانات جديدة
+        onSnapshot(collection(db, "users"), (snapshot) => {
+            userCountDisplay.innerText = snapshot.size;
+        });
+
+        btn.onclick = async () => {
+            const name = input.value.trim();
+            if(!name) return;
+
+            btn.disabled = true;
+            status.innerText = "جاري الحفظ...";
+
+            try {
+                await addDoc(collection(db, "users"), {
+                    name: name,
+                    date: new Date()
+                });
+                status.style.color = "green";
+                status.innerText = "تمت الإضافة بنجاح!";
+                input.value = "";
+            } catch (e) {
+                status.innerText = "خطأ! تأكد من إعدادات Firestore Rules";
+            } finally {
+                btn.disabled = false;
+            }
+        };
+    </script>
+</body>
+</html>
