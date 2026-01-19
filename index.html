@@ -1,5 +1,23 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+    <div id="section-schedule" class="hidden animate-fade">
+    <div class="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+        <table class="w-full text-right">
+            <thead class="bg-slate-50 border-b border-slate-100">
+                <tr class="text-[10px] font-black text-slate-400 uppercase">
+                    <th class="py-4 pr-8">الموظف</th>
+                    <th class="py-4 text-center">السبت</th>
+                    <th class="py-4 text-center">الأحد</th>
+                    <th class="py-4 text-center">الاثنين</th>
+                    <th class="py-4 text-center">الثلاثاء</th>
+                    <th class="py-4 text-center">الأربعاء</th>
+                    <th class="py-4 text-center">الخميس</th>
+                </tr>
+            </thead>
+            <tbody id="schedule-table-body"></tbody>
+        </table>
+    </div>
+</div>
 <head>
     <!-- Firebase SDKs (Compat Version) -->
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
@@ -193,6 +211,16 @@
                     </div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div id="modalOvertime" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center">
+    <div class="bg-white rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl">
+        <h3 class="text-xl font-black mb-6">تسجيل ساعات إضافية</h3>
+        <input type="number" id="ot-hours" placeholder="عدد الساعات" class="w-full p-4 bg-slate-50 rounded-2xl mb-4 border-none outline-none font-bold">
+        <div class="flex gap-3">
+            <button onclick="saveOvertime()" class="flex-grow bg-blue-600 text-white py-4 rounded-2xl font-black">حفظ</button>
+            <button onclick="closeModal('modalOvertime')" class="bg-slate-100 text-slate-400 px-6 rounded-2xl">إلغاء</button>
+        </div>
+    </div>
+</div>
                         <!-- Annual Leave Table -->
                         <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
                             <h4 class="dashboard-grid-title">🏝️ جدول الإجازات السنوي وكشف التعارض</h4>
@@ -726,6 +754,7 @@ function renderEmployeesTable() {
     </script>
 </body>
 </html>
+
 
 
 
