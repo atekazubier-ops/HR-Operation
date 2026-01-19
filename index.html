@@ -3,167 +3,252 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام HR الذكي - تسجيل الدخول</title>
+    <title>نظام إدارة الموارد البشرية | HR System</title>
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
     <style>
+        /* --- 1. إعداد الألوان (رمادي، أبيض، برتقالي) --- */
         :root {
-            --primary-hr: #ff6b4a; /* اللون البرتقالي المعتمد في التصميم */
-            --bg-light: #f4f7f6;
-            --dark-sidebar: #1a1e2b;
+            --hr-orange: #ff6b4a;      /* اللون البرتقالي الأساسي */
+            --hr-dark-grey: #2d3436;   /* رمادي غامق للنصوص والقائمة */
+            --hr-light-grey: #f1f2f6;  /* رمادي فاتح للخلفية */
+            --hr-white: #ffffff;       /* أبيض للبطاقات */
+            --hr-border: #dfe6e9;     /* لون الحدود */
         }
 
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg-light); }
-
-        /* --- 1. تنسيق صفحة تسجيل الدخول --- */
-        #login-page {
-            display: flex; justify-content: center; align-items: center;
-            height: 100vh; background: var(--dark-sidebar);
-        }
-        .login-card {
-            background: white; padding: 40px; border-radius: 15px;
-            width: 350px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-        }
-        .login-card h2 { color: var(--dark-sidebar); margin-bottom: 25px; }
-        .login-card input {
-            width: 100%; padding: 12px; margin-bottom: 15px;
-            border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box;
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            background-color: var(--hr-light-grey);
         }
 
-        /* --- 2. تنسيق لوحة التحكم (مخفية افتراضياً) --- */
-        #dashboard-page { display: none; height: 100vh; }
-        
-        .sidebar { width: 250px; background: var(--dark-sidebar); color: white; display: flex; flex-direction: column; }
-        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
-        
-        .nav-link { padding: 15px 20px; color: #adb5bd; text-decoration: none; display: flex; align-items: center; }
-        .nav-link:hover, .active { background: #252b3b; color: white; border-right: 4px solid var(--primary-hr); }
-        .nav-link i { margin-left: 10px; }
+        /* --- 2. القائمة الجانبية (Sidebar) --- */
+        .sidebar {
+            width: 260px;
+            background-color: var(--hr-dark-grey);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 20px 0;
+        }
 
-        .stat-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        
+        .sidebar-header {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #444;
+            margin-bottom: 20px;
+        }
+
+        .sidebar-header h2 {
+            color: var(--hr-orange);
+            font-size: 22px;
+            margin: 0;
+        }
+
+        .nav-link {
+            padding: 15px 25px;
+            color: #bdc3c7;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            transition: 0.3s;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background-color: #3d454d;
+            color: var(--hr-orange);
+            border-right: 4px solid var(--hr-orange);
+        }
+
+        .nav-link i { margin-left: 15px; font-size: 18px; }
+
+        /* --- 3. المحتوى الرئيسي --- */
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        /* --- 4. بطاقات ملخص الـ HR --- */
+        .hr-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--hr-white);
+            padding: 20px;
+            border-radius: 12px;
+            border-bottom: 4px solid var(--hr-orange); /* خط برتقالي أسفل البطاقة */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .stat-card h4 { margin: 0; color: var(--hr-dark-grey); opacity: 0.7; font-size: 14px; }
+        .stat-card .num { font-size: 28px; font-weight: bold; color: var(--hr-dark-grey); margin: 10px 0; }
+
+        /* --- 5. نموذج إضافة الموظف والجدول --- */
+        .employee-section {
+            background: var(--hr-white);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        input {
+            padding: 12px;
+            border: 1px solid var(--hr-border);
+            border-radius: 6px;
+            flex: 1;
+            min-width: 200px;
+        }
+
         button {
-            background: var(--primary-hr); color: white; border: none;
-            padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold;
+            background-color: var(--hr-orange);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
         }
-        .logout-btn { background: #ff4d4d; margin-top: auto; border-radius: 0; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table th { background: var(--hr-light-grey); padding: 15px; text-align: right; font-size: 14px; }
+        table td { padding: 15px; border-bottom: 1px solid var(--hr-border); font-size: 14px; }
+
     </style>
 </head>
 <body>
 
-    <div id="login-page">
-        <div class="login-card">
-            <i class="fas fa-user-shield fa-3x" style="color: var(--primary-hr); margin-bottom: 15px;"></i>
-            <h2>دخول موظفي HR</h2>
-            <input type="email" id="loginEmail" placeholder="البريد الإلكتروني">
-            <input type="password" id="loginPassword" placeholder="كلمة المرور">
-            <button id="loginBtn">تسجيل الدخول</button>
-            <p id="loginError" style="color: red; font-size: 13px; margin-top: 10px;"></p>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>نظام HR الذكي</h2>
         </div>
+        <a href="#" class="nav-link active"><i class="fas fa-users"></i> دليل الموظفين</a>
+        <a href="#" class="nav-link"><i class="fas fa-user-plus"></i> التوظيف</a>
+        <a href="#" class="nav-link"><i class="fas fa-money-check-alt"></i> الرواتب</a>
+        <a href="#" class="nav-link"><i class="fas fa-calendar-check"></i> الحضور والانصراف</a>
+        <a href="#" class="nav-link"><i class="fas fa-file-invoice"></i> التقارير</a>
     </div>
 
-    <div id="dashboard-page" style="display: flex;">
-        <div class="sidebar">
-            <div style="padding: 25px; font-size: 22px; font-weight: bold; border-bottom: 1px solid #2d3243;">
-                <i class="fas fa-users-cog" style="color: var(--primary-hr);"></i> HR Portal
+    <div class="main-content">
+        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+            <h2 style="margin: 0;">لوحة إدارة الموظفين</h2>
+            <span id="date-display" style="color: var(--hr-dark-grey); opacity: 0.6;"></span>
+        </header>
+
+        <div class="hr-stats">
+            <div class="stat-card">
+                <h4>إجمالي الموظفين</h4>
+                <div class="num" id="empCount">0</div>
             </div>
-            <a href="#" class="nav-link active"><i class="fas fa-chart-line"></i> الإحصائيات</a>
-            <a href="#" class="nav-link"><i class="fas fa-user-friends"></i> قائمة الموظفين</a>
-            <a href="#" class="nav-link"><i class="fas fa-calendar-alt"></i> الإجازات</a>
-            <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</button>
+            <div class="stat-card">
+                <h4>الموظفين النشطين</h4>
+                <div class="num">12</div>
+            </div>
+            <div class="stat-card">
+                <h4>طلبات الإجازة</h4>
+                <div class="num" style="color: var(--hr-orange);">3</div>
+            </div>
         </div>
 
-        <div class="main-content">
-            <h1>لوحة إدارة الموارد البشرية</h1>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 20px;">
-                <div class="stat-card">
-                    <h3>إجمالي الموظفين</h3>
-                    <h2 id="empCount" style="color: var(--primary-hr);">0</h2>
-                </div>
-                <div class="stat-card">
-                    <h3>موظفون حاضرون</h3>
-                    <h2 style="color: #0acf97;">12</h2>
-                </div>
-                <div class="stat-card">
-                    <h3>طلبات إجازة</h3>
-                    <h2 style="color: #ffbc00;">5</h2>
-                </div>
+        <div class="employee-section">
+            <h3 style="margin-top: 0;">إضافة موظف جديد</h3>
+            <div class="form-row">
+                <input type="text" id="empName" placeholder="اسم الموظف الكامل">
+                <input type="text" id="empRole" placeholder="المسمى الوظيفي (مثلاً: محاسب)">
+                <button id="saveEmp">إضافة للمؤسسة</button>
             </div>
-            
-            <div style="background: white; padding: 25px; border-radius: 12px; margin-top: 30px;">
-                <h3>إضافة موظف جديد</h3>
-                <div style="display: flex; gap: 10px;">
-                    <input type="text" id="empName" placeholder="اسم الموظف بالكامل" style="flex: 2; padding: 10px; border-radius: 5px; border: 1px solid #ddd;">
-                    <button id="addEmpBtn" style="flex: 1;">إضافة للملفات</button>
-                </div>
-            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>الاسم</th>
+                        <th>الوظيفة</th>
+                        <th>تاريخ التعيين</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody id="empTableBody">
+                    </tbody>
+            </table>
         </div>
     </div>
 
     <script type="module">
-        // استيراد Firebase SDK
+        // استيراد Firebase (نفس الإعدادات السابقة)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // إعدادات مشروعك
         const firebaseConfig = {
             apiKey: "AIzaSyCy5VroP_MGxOXUHxN0KJLStmGE_iV0UFY",
             authDomain: "test-81dcc.firebaseapp.com",
             projectId: "test-81dcc",
             storageBucket: "test-81dcc.firebasestorage.app",
             messagingSenderId: "462100667219",
-            appId: "1:462100667219:web:1cc7819a81799e3022dfa6"
+            appId: "1:462100667219:web:1cc7819a81799e3022dfa6",
+            measurementId: "G-2M9HZYTYTN"
         };
 
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- وظائف التحكم في الواجهة ---
+        // العناصر
+        const empName = document.getElementById('empName');
+        const empRole = document.getElementById('empRole');
+        const saveBtn = document.getElementById('saveEmp');
+        const empTable = document.getElementById('empTableBody');
+        const empCount = document.getElementById('empCount');
 
-        // 1. تسجيل الدخول
-        document.getElementById('loginBtn').onclick = async () => {
-            const email = document.getElementById('loginEmail').value;
-            const pass = document.getElementById('loginPassword').value;
-            try {
-                await signInWithEmailAndPassword(auth, email, pass);
-            } catch (error) {
-                document.getElementById('loginError').innerText = "خطأ: البريد أو كلمة المرور غير صحيحة";
+        // إضافة موظف لـ Firebase
+        saveBtn.onclick = async () => {
+            if(empName.value && empRole.value) {
+                await addDoc(collection(db, "employees"), {
+                    name: empName.value,
+                    role: empRole.value,
+                    joinDate: new Date()
+                });
+                empName.value = ""; empRole.value = "";
             }
         };
 
-        // 2. مراقبة حالة المستخدم (هل هو مسجل دخول أم لا؟)
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                // مستخدم مسجل -> اظهر الداشبورد واخفِ تسجيل الدخول
-                document.getElementById('login-page').style.display = 'none';
-                document.getElementById('dashboard-page').style.display = 'flex';
-                loadData();
-            } else {
-                // مستخدم غير مسجل -> اظهر صفحة الدخول
-                document.getElementById('login-page').style.display = 'flex';
-                document.getElementById('dashboard-page').style.display = 'none';
-            }
+        // تحديث الجدول المباشر
+        const q = query(collection(db, "employees"), orderBy("joinDate", "desc"));
+        onSnapshot(q, (snapshot) => {
+            empTable.innerHTML = "";
+            empCount.innerText = snapshot.size;
+            snapshot.forEach((doc) => {
+                const emp = doc.data();
+                empTable.innerHTML += `
+                    <tr>
+                        <td><b>${emp.name}</b></td>
+                        <td>${emp.role}</td>
+                        <td>${emp.joinDate.toDate().toLocaleDateString()}</td>
+                        <td><span style="color: #0acf97; background: #e6fff7; padding: 4px 8px; border-radius: 4px; font-size: 12px;">موظف نشط</span></td>
+                    </tr>
+                `;
+            });
         });
 
-        // 3. تسجيل الخروج
-        document.getElementById('logoutBtn').onclick = () => signOut(auth);
-
-        // 4. إدارة بيانات الموظفين
-        function loadData() {
-            onSnapshot(collection(db, "employees"), (snap) => {
-                document.getElementById('empCount').innerText = snap.size;
-            });
-        }
-
-        document.getElementById('addEmpBtn').onclick = async () => {
-            const name = document.getElementById('empName').value;
-            if(name) {
-                await addDoc(collection(db, "employees"), { name: name, date: new Date() });
-                document.getElementById('empName').value = "";
-                alert("تمت إضافة الموظف بنجاح");
-            }
-        };
+        // عرض التاريخ الحالي
+        document.getElementById('date-display').innerText = new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     </script>
 </body>
 </html>
