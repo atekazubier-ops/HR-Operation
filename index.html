@@ -4,30 +4,53 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HR System</title>
-
-<!-- Tailwind CSS -->
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
 <style>
-    body { font-family: 'Cairo', sans-serif; }
-    .hidden-section { display: none; }
-    .active { display: block; }
+body { font-family: 'Cairo', sans-serif; }
+.hidden-section { display: none; }
+.active { display: block; }
 </style>
 </head>
 <body>
-<!-- ===== HTML CONTENT ===== -->
-<!-- افترضنا كل HTML الأصلي موجود هنا -->
-<!-- مثال للجدول -->
+
+<!-- لوحة الموظفين -->
+<section id="dashboard">
+    <h2>لوحة التحكم</h2>
+</section>
+
 <section id="employees" class="hidden-section">
-    <table class="min-w-full">
+    <input type="text" id="empSearch" placeholder="بحث..." oninput="searchEmployees()">
+    <table>
         <tbody id="employeesTableBody"></tbody>
     </table>
 </section>
 
-<!-- مثال المودال -->
+<!-- مودال الإضافي -->
 <div id="modalOvertime" class="hidden-section">
-    <!-- محتوى المودال -->
+    <span id="overtime_remaining_display"></span>
+    <input type="date" id="overtime_date">
+    <input type="number" id="overtime_hours">
+    <input type="text" id="overtime_reason">
+    <button onclick="saveOvertime()">حفظ</button>
+    <button onclick="closeModal('modalOvertime')">إغلاق</button>
 </div>
+
+<!-- مودال AI -->
+<div id="modalAI" class="hidden-section">
+    <div id="aiResultContent"></div>
+    <button onclick="closeModal('modalAI')">إغلاق</button>
+</div>
+
+<!-- جدول الإضافي في البروفايل -->
+<table>
+    <thead>
+        <tr>
+            <th>التاريخ</th><th>عدد الساعات</th><th>السبب</th><th>حذف</th>
+        </tr>
+    </thead>
+    <tbody id="profileOvertimeTable"></tbody>
+</table>
+<div id="profile-overtime-stats"></div>
 
 <!-- =======================
    JS العادي
@@ -38,38 +61,39 @@ let currentEmpId = null;
 let systemDate = new Date();
 let apiKey = "";
 
-// ====== NAVIGATION ======
-function showSection(id) {
-    document.querySelectorAll('section').forEach(s => s.classList.add('hidden-section'));
-    const sec = document.getElementById(id); if(sec) sec.classList.remove('hidden-section');
-    document.getElementById('section-title')?.innerText = id;
+// NAVIGATION
+function showSection(id){
+    document.querySelectorAll('section').forEach(s=>s.classList.add('hidden-section'));
+    const sec = document.getElementById(id);
+    if(sec) sec.classList.remove('hidden-section');
 }
 
-// ====== MODALS ======
+// MODALS
 function openModal(id){ document.getElementById(id)?.classList.add('active'); }
 function closeModal(id){ document.getElementById(id)?.classList.remove('active'); }
 
-// ====== EMPLOYEES ======
+// STORAGE
 function saveToStorage(){ localStorage.setItem("employees", JSON.stringify(employees)); }
 
+// EMPLOYEES
 function saveNewEmployee(e){
     e.preventDefault();
-    const id = document.getElementById('f_id').value;
+    const id=document.getElementById('f_id').value;
     if(employees.some(emp=>emp.id==id)) return alert("الرقم مسجل!");
     employees.push({
-        id: id,
-        name: document.getElementById('f_name').value,
+        id:id,
+        name:document.getElementById('f_name').value,
         details:{
-            "القسم": document.getElementById('f_dept').value,
-            "المسمى": document.getElementById('f_pos').value,
-            "الراتب": document.getElementById('f_salary').value,
-            "الهاتف": document.getElementById('f_phone').value,
-            "تاريخ الميلاد": document.getElementById('f_dob').value,
-            "فصيلة الدم": document.getElementById('f_blood').value,
-            "العنوان": document.getElementById('f_address').value,
-            "بداية العمل": document.getElementById('f_start_date').value,
-            "رصيد الإجازات": document.getElementById('f_leave_bal').value,
-            "الجنسية": document.getElementById('f_nat').value
+            "القسم":document.getElementById('f_dept').value,
+            "المسمى":document.getElementById('f_pos').value,
+            "الراتب":document.getElementById('f_salary').value,
+            "الهاتف":document.getElementById('f_phone').value,
+            "تاريخ الميلاد":document.getElementById('f_dob').value,
+            "فصيلة الدم":document.getElementById('f_blood').value,
+            "العنوان":document.getElementById('f_address').value,
+            "بداية العمل":document.getElementById('f_start_date').value,
+            "رصيد الإجازات":document.getElementById('f_leave_bal').value,
+            "الجنسية":document.getElementById('f_nat').value
         },
         schedule:{}, actions:[], tasks:[], leaves:[], overtime:[]
     });
@@ -79,42 +103,38 @@ function saveNewEmployee(e){
 }
 
 function renderEmployeeList(data = employees){
-    const tbody = document.getElementById('employeesTableBody');
+    const tbody=document.getElementById('employeesTableBody');
     if(!tbody) return;
-    tbody.innerHTML = data.map(emp=>`
+    tbody.innerHTML=data.map(emp=>`
         <tr class="hover:bg-slate-50 border-b font-bold">
-            <td class="p-5">${emp.name} <span class="text-slate-300">#${emp.id}</span></td>
-            <td class="p-5 text-slate-500">${emp.details['القسم']}</td>
-            <td class="p-5 text-center">
-                <button onclick="viewProfile('${emp.id}')" class="bg-blue-50 text-blue-700 px-8 py-2 rounded-2xl font-black text-xs hover:bg-blue-600 hover:text-white transition-all">عرض</button>
-            </td>
+            <td>${emp.name} <span class="text-slate-300">#${emp.id}</span></td>
+            <td>${emp.details['القسم']}</td>
+            <td><button onclick="viewProfile('${emp.id}')">عرض</button></td>
         </tr>
     `).join('');
 }
 
 function searchEmployees(){
-    const v = document.getElementById('empSearch')?.value.toLowerCase() || "";
+    const v=document.getElementById('empSearch')?.value.toLowerCase()||"";
     renderEmployeeList(employees.filter(e=>e.name.toLowerCase().includes(v)||e.id.toLowerCase().includes(v)));
 }
 
-// ====== BACKUP ======
+// BACKUP
 function downloadFullBackup(){
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([JSON.stringify(employees)],{type:"application/json"}));
-    a.download="HR_Backup.json";
-    a.click();
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([JSON.stringify(employees)],{type:"application/json"}));
+    a.download="HR_Backup.json"; a.click();
 }
 
 function importFullBackup(event){
-    const file=event.target.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e){
+    const file=event.target.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=function(e){
         try{
-            const importedData = JSON.parse(e.target.result);
+            const importedData=JSON.parse(e.target.result);
             if(Array.isArray(importedData)){
                 if(confirm("استعادة النسخة الاحتياطية سيؤدي لمسح البيانات الحالية. هل أنت متأكد؟")){
-                    employees = importedData;
+                    employees=importedData;
                     saveToStorage();
                     window.location.reload();
                 }
@@ -124,32 +144,28 @@ function importFullBackup(event){
     reader.readAsText(file);
 }
 
-// ====== OVERTIME ======
+// OVERTIME
 function prepareOvertimeModal(){
-    const emp = employees.find(e=>e.id==currentEmpId);
+    const emp=employees.find(e=>e.id==currentEmpId);
     if(!emp.overtime) emp.overtime=[];
-    const usedHours = emp.overtime.reduce((sum,item)=>sum+parseFloat(item.hours),0);
-    const remaining = 20 - usedHours;
-    document.getElementById('overtime_remaining_display')?.innerText = remaining;
-    document.getElementById('overtime_date').value = new Date().toISOString().split('T')[0];
+    const usedHours=emp.overtime.reduce((sum,item)=>sum+parseFloat(item.hours),0);
+    const remaining=20-usedHours;
+    document.getElementById('overtime_remaining_display')?.innerText=remaining;
+    document.getElementById('overtime_date').value=new Date().toISOString().split('T')[0];
     document.getElementById('overtime_hours').value="";
     if(remaining<=0) alert("لقد استنفذ هذا الموظف رصيد الإضافي بالكامل (20 ساعة).");
     openModal('modalOvertime');
 }
 
 function saveOvertime(){
-    const emp = employees.find(e=>e.id==currentEmpId);
+    const emp=employees.find(e=>e.id==currentEmpId);
     if(!emp.overtime) emp.overtime=[];
     const date=document.getElementById('overtime_date').value;
     const hours=parseFloat(document.getElementById('overtime_hours').value);
     const reason=document.getElementById('overtime_reason').value;
     if(!date||!hours||hours<=0) return alert("يرجى إدخال بيانات صحيحة");
     const currentUsed=emp.overtime.reduce((sum,item)=>sum+parseFloat(item.hours),0);
-    const newTotal=currentUsed+hours;
-    if(newTotal>20){
-        alert(`لا يمكن الإضافة! الرصيد المستخدم: ${currentUsed} ساعة. الإضافة المطلوبة: ${hours} ساعة.`);
-        return;
-    }
+    if(currentUsed+hours>20) return alert("الرصيد غير كافي!");
     emp.overtime.push({date,hours,reason});
     saveToStorage();
     viewProfile(currentEmpId);
@@ -161,17 +177,13 @@ function renderOvertimeTable(emp){
     const records=emp.overtime||[];
     const totalHours=records.reduce((sum,item)=>sum+parseFloat(item.hours),0);
     const remaining=20-totalHours;
-    document.getElementById('profile-overtime-stats')?.innerHTML=`مستخدم: <span class="text-red-600">${totalHours}</span> | متبقي: <span class="text-green-600">${remaining}</span>`;
+    document.getElementById('profile-overtime-stats')?.innerHTML=`مستخدم: ${totalHours} | متبقي: ${remaining}`;
     tbody.innerHTML=records.map((item,index)=>`
-        <tr class="hover:bg-orange-50 transition">
-            <td class="p-3 text-slate-500">${item.date}</td>
-            <td class="p-3 text-orange-600 text-lg">${item.hours}</td>
-            <td class="p-3 text-slate-700">${item.reason}</td>
-            <td class="p-3 text-left">
-                <button onclick="deleteOvertime(${index})" class="text-red-400 hover:text-red-600 font-bold transition">✕</button>
-            </td>
+        <tr>
+            <td>${item.date}</td><td>${item.hours}</td><td>${item.reason}</td>
+            <td><button onclick="deleteOvertime(${index})">✕</button></td>
         </tr>
-    `).join('') || '<tr><td colspan="4" class="p-6 text-center text-slate-300 italic">لا يوجد ساعات إضافية مسجلة</td></tr>';
+    `).join('') || '<tr><td colspan="4">لا يوجد ساعات إضافية مسجلة</td></tr>';
 }
 
 function deleteOvertime(index){
@@ -183,10 +195,10 @@ function deleteOvertime(index){
     }
 }
 
-// ====== ONLOAD ======
+// ONLOAD
 window.onload = ()=>{
     const saved = localStorage.getItem("employees");
-    if(saved) employees = JSON.parse(saved);
+    if(saved) employees=JSON.parse(saved);
     showSection('dashboard');
     renderEmployeeList();
 };
