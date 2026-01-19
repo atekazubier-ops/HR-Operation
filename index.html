@@ -247,6 +247,42 @@
             <h3 class="text-2xl font-black text-slate-800 flex items-center gap-3">📝 إضافة ملف موظف جديد</h3>
             <button onclick="showSection('employees')" class="text-xs bg-slate-100 px-4 py-2 rounded-lg font-bold">رجوع</button>
         </div>
+        <div id="section-profile" class="hidden animate-fade">
+    <div class="max-w-4xl mx-auto bg-white rounded-[2.5rem] border border-slate-200 shadow-2xl overflow-hidden">
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 text-white flex justify-between items-start">
+            <div class="flex items-center gap-6">
+                <div id="prof-avatar" class="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-2xl font-black border border-white/30"></div>
+                <div>
+                    <h3 id="prof-name" class="text-3xl font-black mb-1"></h3>
+                    <p id="prof-title-dept" class="text-blue-100 font-bold opacity-90"></p>
+                </div>
+            </div>
+            <button onclick="showSection('employees')" class="bg-white/10 hover:bg-white/20 p-2 rounded-xl">✕</button>
+        </div>
+        <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="space-y-4">
+                <div class="bg-slate-50 p-4 rounded-xl">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">الرقم الوظيفي</p>
+                    <p id="prof-id" class="font-black text-slate-700"></p>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-xl">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">رقم الهاتف</p>
+                    <p id="prof-phone" class="font-black text-slate-700" dir="ltr"></p>
+                </div>
+            </div>
+            <div class="space-y-4">
+                <div class="bg-slate-50 p-4 rounded-xl">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">تاريخ المباشرة</p>
+                    <p id="prof-join" class="font-black text-slate-700"></p>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-xl">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">رصيد الإجازات</p>
+                    <p id="prof-leave" class="font-black text-blue-600"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
         
         <form id="add-employee-form" class="space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -465,43 +501,28 @@
                 </div>
             `).join('') || '<div class="col-span-full py-4 text-center text-slate-300 text-xs font-bold">لا يوجد أعياد ميلاد قريبة</div>';
         }
-
-        function renderEmployeesTable() {
+function renderEmployeesTable() {
     const searchTerm = document.getElementById('employee-search').value.toLowerCase();
     const container = document.getElementById('employees-table-body');
+    const filtered = employees.filter(e => e.name.toLowerCase().includes(searchTerm) || (e.dept && e.dept.toLowerCase().includes(searchTerm)));
     
-    // تصفية الموظفين بناءً على البحث
-    const filtered = employees.filter(e => 
-        e.name.toLowerCase().includes(searchTerm) || 
-        (e.dept && e.dept.toLowerCase().includes(searchTerm))
-    );
-
     container.innerHTML = filtered.map(e => `
-        <tr class="border-b border-slate-50 hover:bg-blue-50/30 transition-all group">
+        <tr class="border-b border-slate-50 hover:bg-slate-50 transition-all">
             <td class="py-6 pr-8 cursor-pointer" onclick="viewEmployeeProfile('${e.id}')">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black text-xs uppercase shadow-sm group-hover:scale-110 transition-transform">
-                        ${e.name.substring(0,2)}
-                    </div>
+                    <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center font-black text-xs uppercase">${e.name.substring(0,2)}</div>
                     <div>
-                        <span class="font-black text-slate-800 text-sm block group-hover:text-blue-600 transition-colors">${e.name}</span>
-                        <span class="text-[9px] text-blue-400 font-bold uppercase tracking-tighter">اضغط لعرض الملف الشخصي ↗</span>
+                        <span class="font-black text-slate-800 text-sm block">${e.name}</span>
+                        <span class="text-[9px] text-blue-500 font-bold uppercase">عرض الملف ↗</span>
                     </div>
                 </div>
             </td>
-
             <td class="py-6 font-bold text-slate-500 text-xs uppercase">${e.dept || '-'}</td>
             <td class="py-6 font-bold text-slate-500 text-xs" dir="ltr">${e.phone || '-'}</td>
-            <td class="py-6">
-                <span class="px-3 py-1 rounded-full ${parseInt(e.leaveBal) < 5 ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'} text-[10px] font-black">
-                    ${e.leaveBal || 30} يوم
-                </span>
-            </td>
+            <td class="py-6"><span class="px-3 py-1 rounded-full ${parseInt(e.leaveBal) < 5 ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'} text-[10px] font-black">${e.leaveBal || 30} يوم</span></td>
             <td class="py-6 pl-8 text-center">
-                <div class="flex items-center justify-center gap-2">
-                    <button onclick="viewEmployeeProfile('${e.id}')" class="bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-400 p-2 rounded-lg transition-all" title="تعديل">⚙️</button>
-                    <button onclick="deleteEmployee('${e.id}')" class="bg-slate-100 hover:bg-red-600 hover:text-white text-slate-400 p-2 rounded-lg transition-all" title="حذف">🗑️</button>
-                </div>
+                <button onclick="viewEmployeeProfile('${e.id}')" class="text-slate-400 hover:text-blue-600 p-2">⚙️</button>
+                <button onclick="deleteEmployee('${e.id}')" class="text-slate-400 hover:text-red-600 p-2">🗑️</button>
             </td>
         </tr>`).join('');
 }
@@ -557,9 +578,26 @@
 
     showSection('profile');
 }
+        function viewEmployeeProfile(id) {
+    const emp = employees.find(e => e.id === id);
+    if (!emp) return;
+
+    // تعبئة البيانات
+    document.getElementById('prof-name').innerText = emp.name;
+    document.getElementById('prof-avatar').innerText = emp.name.substring(0, 2).toUpperCase();
+    document.getElementById('prof-title-dept').innerText = `${emp.dept || 'موظف'}`;
+    document.getElementById('prof-id').innerText = emp.empIdNum || 'غير مسجل';
+    document.getElementById('prof-phone').innerText = emp.phone || '---';
+    document.getElementById('prof-join').innerText = emp.joinDate || '---';
+    document.getElementById('prof-leave').innerText = (emp.leaveBal || 30) + " يوم";
+
+    // إظهار القسم
+    showSection('profile');
+}
     </script>
 </body>
 </html>
+
 
 
 
