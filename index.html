@@ -9,39 +9,69 @@
 body { font-family: 'Cairo', sans-serif; }
 .hidden-section { display: none; }
 .active { display: block; }
+table, th, td { border-collapse: collapse; }
+th, td { padding: 8px; border: 1px solid #ddd; }
 </style>
 </head>
 <body>
 
-<!-- لوحة الموظفين -->
+<!-- ===== لوحة التحكم ===== -->
 <section id="dashboard">
     <h2>لوحة التحكم</h2>
+    <button onclick="showSection('employees')">قائمة الموظفين</button>
 </section>
 
+<!-- ===== الموظفين ===== -->
 <section id="employees" class="hidden-section">
+    <h2>الموظفين</h2>
     <input type="text" id="empSearch" placeholder="بحث..." oninput="searchEmployees()">
     <table>
+        <thead>
+            <tr><th>الاسم</th><th>القسم</th><th>عرض</th></tr>
+        </thead>
         <tbody id="employeesTableBody"></tbody>
     </table>
+
+    <!-- نموذج إضافة موظف -->
+    <h3>إضافة موظف</h3>
+    <form onsubmit="saveNewEmployee(event)">
+        <input id="f_id" placeholder="الرقم الوظيفي" required>
+        <input id="f_name" placeholder="الاسم" required>
+        <input id="f_dept" placeholder="القسم" required>
+        <input id="f_pos" placeholder="المسمى" required>
+        <input id="f_salary" placeholder="الراتب">
+        <input id="f_phone" placeholder="الهاتف">
+        <input id="f_dob" placeholder="تاريخ الميلاد">
+        <input id="f_blood" placeholder="فصيلة الدم">
+        <input id="f_address" placeholder="العنوان">
+        <input id="f_start_date" placeholder="بداية العمل" type="date">
+        <input id="f_leave_bal" placeholder="رصيد الإجازات">
+        <input id="f_nat" placeholder="الجنسية">
+        <button type="submit">إضافة موظف</button>
+    </form>
+
+    <button onclick="downloadFullBackup()">تحميل نسخة احتياطية</button>
+    <input type="file" onchange="importFullBackup(event)">
 </section>
 
-<!-- مودال الإضافي -->
+<!-- ===== مودال الإضافي ===== -->
 <div id="modalOvertime" class="hidden-section">
-    <span id="overtime_remaining_display"></span>
+    <h3>إضافة ساعات إضافية</h3>
+    <span>متبقي: <span id="overtime_remaining_display"></span></span>
     <input type="date" id="overtime_date">
-    <input type="number" id="overtime_hours">
-    <input type="text" id="overtime_reason">
+    <input type="number" id="overtime_hours" placeholder="عدد الساعات">
+    <input type="text" id="overtime_reason" placeholder="السبب">
     <button onclick="saveOvertime()">حفظ</button>
     <button onclick="closeModal('modalOvertime')">إغلاق</button>
 </div>
 
-<!-- مودال AI -->
+<!-- ===== مودال AI ===== -->
 <div id="modalAI" class="hidden-section">
     <div id="aiResultContent"></div>
     <button onclick="closeModal('modalAI')">إغلاق</button>
 </div>
 
-<!-- جدول الإضافي في البروفايل -->
+<!-- ===== جدول الإضافي في البروفايل ===== -->
 <table>
     <thead>
         <tr>
@@ -52,9 +82,9 @@ body { font-family: 'Cairo', sans-serif; }
 </table>
 <div id="profile-overtime-stats"></div>
 
-<!-- =======================
-   JS العادي
-======================= -->
+<!-- =====================
+       JS العادي
+===================== -->
 <script>
 let employees = [];
 let currentEmpId = null;
@@ -106,8 +136,8 @@ function renderEmployeeList(data = employees){
     const tbody=document.getElementById('employeesTableBody');
     if(!tbody) return;
     tbody.innerHTML=data.map(emp=>`
-        <tr class="hover:bg-slate-50 border-b font-bold">
-            <td>${emp.name} <span class="text-slate-300">#${emp.id}</span></td>
+        <tr>
+            <td>${emp.name} #${emp.id}</td>
             <td>${emp.details['القسم']}</td>
             <td><button onclick="viewProfile('${emp.id}')">عرض</button></td>
         </tr>
@@ -168,7 +198,7 @@ function saveOvertime(){
     if(currentUsed+hours>20) return alert("الرصيد غير كافي!");
     emp.overtime.push({date,hours,reason});
     saveToStorage();
-    viewProfile(currentEmpId);
+    renderOvertimeTable(emp);
     closeModal('modalOvertime');
 }
 
@@ -177,7 +207,7 @@ function renderOvertimeTable(emp){
     const records=emp.overtime||[];
     const totalHours=records.reduce((sum,item)=>sum+parseFloat(item.hours),0);
     const remaining=20-totalHours;
-    document.getElementById('profile-overtime-stats')?.innerHTML=`مستخدم: ${totalHours} | متبقي: ${remaining}`;
+    document.getElementById('profile-overtime-stats')?.innerText=`مستخدم: ${totalHours} | متبقي: ${remaining}`;
     tbody.innerHTML=records.map((item,index)=>`
         <tr>
             <td>${item.date}</td><td>${item.hours}</td><td>${item.reason}</td>
@@ -191,7 +221,7 @@ function deleteOvertime(index){
         const emp=employees.find(e=>e.id==currentEmpId);
         emp.overtime.splice(index,1);
         saveToStorage();
-        viewProfile(currentEmpId);
+        renderOvertimeTable(emp);
     }
 }
 
@@ -204,9 +234,9 @@ window.onload = ()=>{
 };
 </script>
 
-<!-- =======================
-   FIREBASE SDK
-======================= -->
+<!-- =====================
+       FIREBASE SDK
+===================== -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 
@@ -224,5 +254,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 console.log("🔥 Firebase Connected", app);
 </script>
+
 </body>
 </html>
