@@ -3,197 +3,380 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام إدارة الموارد البشرية | HR System</title>
+    <title>Presto HR | الواجهة الرسمية</title>
     
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     
     <style>
-        /* --- 1. إعداد الألوان (رمادي، أبيض، برتقالي) --- */
         :root {
-            --hr-orange: #ff6b4a;      /* اللون البرتقالي الأساسي */
-            --hr-dark-grey: #2d3436;   /* رمادي غامق للنصوص والقائمة */
-            --hr-light-grey: #f1f2f6;  /* رمادي فاتح للخلفية */
-            --hr-white: #ffffff;       /* أبيض للبطاقات */
-            --hr-border: #dfe6e9;     /* لون الحدود */
+            --primary: #ff6b4a;
+            --primary-light: #ff8e75;
+            --secondary: #2d3436;
+            --bg-main: #f0f2f5;
+            --bg-card: #ffffff;
+            --text-main: #1e272e;
+            --text-muted: #7f8c8d;
+            --accent-green: #00b894;
+            --shadow: 0 10px 30px rgba(0,0,0,0.05);
+            --sidebar-bg: #2d3436;
+            --top-bar-height: 65px;
+            --sidebar-width-collapsed: 80px;
+            --sidebar-width-expanded: 260px;
+        }
+
+        [data-theme="dark"] {
+            --bg-main: #121212;
+            --bg-card: #1e1e1e;
+            --text-main: #e0e0e0;
+            --text-muted: #a0a0a0;
+            --shadow: 0 10px 30px rgba(0,0,0,0.3);
+            --sidebar-bg: #0a0a0a;
+        }
+
+        * {
+            box-sizing: border-box;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, sans-serif;
+            font-family: 'El Messiri', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
             margin: 0;
             display: flex;
+            flex-direction: column;
             height: 100vh;
-            background-color: var(--hr-light-grey);
+            overflow: hidden;
         }
 
-        /* --- 2. القائمة الجانبية (Sidebar) --- */
+        /* --- Global Top Bar (User & Theme) --- */
+        .global-header {
+            height: var(--top-bar-height);
+            background: var(--bg-card);
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 0 30px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.04);
+            z-index: 1001;
+        }
+
+        .user-control-panel {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .theme-toggle-btn {
+            background: var(--bg-main);
+            border: none;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            cursor: pointer;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .user-identity {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding-right: 20px;
+            border-right: 2px solid var(--bg-main);
+        }
+
+        .user-name {
+            text-align: left;
+            margin-left: 10px;
+        }
+
+        /* --- Sidebar Interaction --- */
+        .app-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
         .sidebar {
-            width: 260px;
-            background-color: var(--hr-dark-grey);
-            color: white;
+            width: var(--sidebar-width-collapsed);
+            background: var(--sidebar-bg);
+            margin: 15px;
+            border-radius: 24px;
             display: flex;
             flex-direction: column;
             padding: 20px 0;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            overflow: hidden;
+            white-space: nowrap;
+            z-index: 1000;
         }
 
-        .sidebar-header {
-            text-align: center;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #444;
-            margin-bottom: 20px;
+        .sidebar:hover {
+            width: var(--sidebar-width-expanded);
+            padding: 20px 15px;
         }
 
-        .sidebar-header h2 {
-            color: var(--hr-orange);
-            font-size: 22px;
-            margin: 0;
-        }
-
-        .nav-link {
-            padding: 15px 25px;
-            color: #bdc3c7;
-            text-decoration: none;
+        /* الشعار الرسمي لبريستو */
+        .sidebar-logo-container {
             display: flex;
             align-items: center;
-            transition: 0.3s;
+            padding: 10px 15px;
+            margin-bottom: 30px;
+            height: 60px;
+            overflow: hidden;
+        }
+
+        .presto-official-logo {
+            height: 40px;
+            min-width: 40px;
+            object-fit: contain;
+            transition: all 0.3s ease;
+        }
+
+        /* عند الانكماش، يظهر جزء فقط من الشعار أو يتم تصغيره */
+        .sidebar:not(:hover) .presto-official-logo {
+            height: 35px;
+            margin: 0 auto;
+        }
+
+        .nav-menu { list-style: none; padding: 0; margin: 0; width: 100%; }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 14px 20px;
+            color: #bdc3c7;
+            text-decoration: none;
+            border-radius: 16px;
+            margin-bottom: 8px;
+            gap: 15px;
+        }
+
+        .nav-link i {
+            font-size: 20px;
+            min-width: 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .nav-link span {
+            font-weight: 600;
+            opacity: 0;
+            transform: translateX(10px);
+            transition: all 0.3s ease;
+        }
+
+        .sidebar:hover .nav-link span {
+            opacity: 1;
+            transform: translateX(0);
         }
 
         .nav-link:hover, .nav-link.active {
-            background-color: #3d454d;
-            color: var(--hr-orange);
-            border-right: 4px solid var(--hr-orange);
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 8px 15px rgba(255, 107, 74, 0.3);
         }
 
-        .nav-link i { margin-left: 15px; font-size: 18px; }
-
-        /* --- 3. المحتوى الرئيسي --- */
-        .main-content {
+        /* --- Workspace --- */
+        .workspace {
             flex: 1;
-            padding: 30px;
+            padding: 20px 20px 20px 0;
             overflow-y: auto;
         }
 
-        /* --- 4. بطاقات ملخص الـ HR --- */
-        .hr-stats {
+        .search-area {
+            background: var(--bg-card);
+            padding: 15px 25px;
+            border-radius: 20px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            box-shadow: var(--shadow);
+        }
+
+        .search-input-group {
+            display: flex;
+            align-items: center;
+            background: var(--bg-main);
+            padding: 10px 20px;
+            border-radius: 12px;
+            width: 350px;
+            gap: 12px;
+        }
+
+        .search-input-group input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-main);
+            font-family: 'El Messiri';
+            width: 100%;
+        }
+
+        .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
 
         .stat-card {
-            background: var(--hr-white);
-            padding: 20px;
-            border-radius: 12px;
-            border-bottom: 4px solid var(--hr-orange); /* خط برتقالي أسفل البطاقة */
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        }
-
-        .stat-card h4 { margin: 0; color: var(--hr-dark-grey); opacity: 0.7; font-size: 14px; }
-        .stat-card .num { font-size: 28px; font-weight: bold; color: var(--hr-dark-grey); margin: 10px 0; }
-
-        /* --- 5. نموذج إضافة الموظف والجدول --- */
-        .employee-section {
-            background: var(--hr-white);
+            background: var(--bg-card);
             padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            border-right: 5px solid var(--primary);
         }
 
-        .form-row {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
+        .stat-card .val { font-size: 34px; font-weight: 800; margin: 10px 0; }
+
+        .data-panel {
+            background: var(--bg-card);
+            border-radius: 28px;
+            padding: 30px;
+            box-shadow: var(--shadow);
         }
 
-        input {
-            padding: 12px;
-            border: 1px solid var(--hr-border);
-            border-radius: 6px;
+        .action-row { display: flex; gap: 15px; margin-bottom: 30px; }
+
+        input[type="text"] {
+            padding: 15px 20px;
+            border: 2px solid var(--bg-main);
+            border-radius: 16px;
             flex: 1;
-            min-width: 200px;
+            background: var(--bg-main);
+            color: var(--text-main);
+            font-family: 'El Messiri';
         }
 
-        button {
-            background-color: var(--hr-orange);
+        .btn-submit {
+            background: var(--primary);
             color: white;
             border: none;
-            padding: 12px 30px;
-            border-radius: 6px;
+            padding: 0 35px;
+            border-radius: 16px;
             cursor: pointer;
+            font-weight: 700;
+            font-family: 'El Messiri';
+        }
+
+        table { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
+        th { text-align: right; padding: 10px 20px; color: var(--text-muted); }
+        tbody tr { background: var(--bg-main); border-radius: 16px; }
+        td { padding: 20px; }
+
+        .avatar-box {
+            width: 40px; height: 40px;
+            background: var(--primary-light);
+            color: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-weight: bold;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .search-input-group { width: 100%; }
         }
-
-        table th { background: var(--hr-light-grey); padding: 15px; text-align: right; font-size: 14px; }
-        table td { padding: 15px; border-bottom: 1px solid var(--hr-border); font-size: 14px; }
-
     </style>
 </head>
-<body>
+<body data-theme="light">
 
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <h2>نظام HR الذكي</h2>
-        </div>
-        <a href="#" class="nav-link active"><i class="fas fa-users"></i> دليل الموظفين</a>
-        <a href="#" class="nav-link"><i class="fas fa-user-plus"></i> التوظيف</a>
-        <a href="#" class="nav-link"><i class="fas fa-money-check-alt"></i> الرواتب</a>
-        <a href="#" class="nav-link"><i class="fas fa-calendar-check"></i> الحضور والانصراف</a>
-        <a href="#" class="nav-link"><i class="fas fa-file-invoice"></i> التقارير</a>
-    </div>
-
-    <div class="main-content">
-        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
-            <h2 style="margin: 0;">لوحة إدارة الموظفين</h2>
-            <span id="date-display" style="color: var(--hr-dark-grey); opacity: 0.6;"></span>
-        </header>
-
-        <div class="hr-stats">
-            <div class="stat-card">
-                <h4>إجمالي الموظفين</h4>
-                <div class="num" id="empCount">0</div>
-            </div>
-            <div class="stat-card">
-                <h4>الموظفين النشطين</h4>
-                <div class="num">12</div>
-            </div>
-            <div class="stat-card">
-                <h4>طلبات الإجازة</h4>
-                <div class="num" style="color: var(--hr-orange);">3</div>
+    <!-- شريط المستخدم العلوي المستقل -->
+    <header class="global-header">
+        <div class="user-control-panel">
+            <button class="theme-toggle-btn" id="themeSwitcher" title="تبديل المظهر">
+                <i class="fas fa-moon"></i>
+            </button>
+            
+            <div class="user-identity">
+                <div class="user-name">
+                    <div style="font-weight: 700; font-size: 14px;">أحمد المدير</div>
+                    <div style="font-size: 11px; color: var(--text-muted);">مدير النظام</div>
+                </div>
+                <div class="avatar-box">أ</div>
             </div>
         </div>
+    </header>
 
-        <div class="employee-section">
-            <h3 style="margin-top: 0;">إضافة موظف جديد</h3>
-            <div class="form-row">
-                <input type="text" id="empName" placeholder="اسم الموظف الكامل">
-                <input type="text" id="empRole" placeholder="المسمى الوظيفي (مثلاً: محاسب)">
-                <button id="saveEmp">إضافة للمؤسسة</button>
+    <div class="app-container">
+        <!-- القائمة الجانبية التفاعلية -->
+        <aside class="sidebar">
+            <div class="sidebar-logo-container">
+                <!-- الشعار الرسمي لبريستو -->
+                <img src="https://admin.presto.app/assets/presto-named-logo-bfcd1e42.png" alt="Presto Logo" class="presto-official-logo">
+            </div>
+            
+            <nav class="nav-menu">
+                <a href="#" class="nav-link active"><i class="fas fa-chart-pie"></i> <span>لوحة التحكم</span></a>
+                <a href="#" class="nav-link"><i class="fas fa-user-friends"></i> <span>الموظفين</span></a>
+                <a href="#" class="nav-link"><i class="fas fa-wallet"></i> <span>الرواتب</span></a>
+                <a href="#" class="nav-link"><i class="fas fa-calendar-alt"></i> <span>الإجازات</span></a>
+                <a href="#" class="nav-link"><i class="fas fa-cogs"></i> <span>الإعدادات</span></a>
+            </nav>
+        </aside>
+
+        <!-- مساحة العمل -->
+        <main class="workspace">
+            <div class="search-area">
+                <div class="search-input-group">
+                    <i class="fas fa-search" style="color: var(--text-muted);"></i>
+                    <input type="text" placeholder="ابحث عن موظف، تقرير، أو معاملة...">
+                </div>
+                <div style="margin-right: auto; font-weight: 600; color: var(--text-muted);" id="dateDisplay"></div>
             </div>
 
-            <table>
-                <thead>
-                    <tr>
-                        <th>الاسم</th>
-                        <th>الوظيفة</th>
-                        <th>تاريخ التعيين</th>
-                        <th>الحالة</th>
-                    </tr>
-                </thead>
-                <tbody id="empTableBody">
-                    </tbody>
-            </table>
-        </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h4 style="margin:0; color:var(--text-muted)">إجمالي الفريق</h4>
+                    <div class="val" id="countDisplay">0</div>
+                    <div style="color:var(--accent-green); font-size:12px;"><i class="fas fa-check-circle"></i> جميعهم نشطون</div>
+                </div>
+                <div class="stat-card">
+                    <h4 style="margin:0; color:var(--text-muted)">المتواجدون اليوم</h4>
+                    <div class="val" style="color:var(--primary)">08</div>
+                    <div style="color:var(--text-muted); font-size:12px;">تحديث مباشر</div>
+                </div>
+                <div class="stat-card">
+                    <h4 style="margin:0; color:var(--text-muted)">المكافآت والبدلات</h4>
+                    <div class="val">04</div>
+                    <div style="color:var(--primary); font-size:12px;">قيد الانتظار</div>
+                </div>
+            </div>
+
+            <div class="data-panel">
+                <h3 style="margin-top:0; margin-bottom: 25px;">إضافة موظف جديد لأسرة بريستو</h3>
+                <div class="action-row">
+                    <input type="text" id="nameInput" placeholder="اسم الموظف الثلاثي">
+                    <input type="text" id="roleInput" placeholder="المنصب الوظيفي">
+                    <button class="btn-submit" id="submitBtn">إضافة الآن</button>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>اسم الموظف</th>
+                                <th>الوظيفة</th>
+                                <th>تاريخ التسجيل</th>
+                                <th>الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employeesList"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
     </div>
 
     <script type="module">
-        // استيراد Firebase (نفس الإعدادات السابقة)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -202,53 +385,63 @@
             authDomain: "test-81dcc.firebaseapp.com",
             projectId: "test-81dcc",
             storageBucket: "test-81dcc.firebasestorage.app",
-            messagingSenderId: "462100667219",
-            appId: "1:462100667219:web:1cc7819a81799e3022dfa6",
-            measurementId: "G-2M9HZYTYTN"
+            appId: "1:462100667219:web:1cc7819a81799e3022dfa6"
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // العناصر
-        const empName = document.getElementById('empName');
-        const empRole = document.getElementById('empRole');
-        const saveBtn = document.getElementById('saveEmp');
-        const empTable = document.getElementById('empTableBody');
-        const empCount = document.getElementById('empCount');
+        // --- مظهر الوضع الليلي ---
+        const themeBtn = document.getElementById('themeSwitcher');
+        const body = document.body;
 
-        // إضافة موظف لـ Firebase
-        saveBtn.onclick = async () => {
-            if(empName.value && empRole.value) {
+        themeBtn.onclick = () => {
+            const isDark = body.getAttribute('data-theme') === 'dark';
+            const newTheme = isDark ? 'light' : 'dark';
+            body.setAttribute('data-theme', newTheme);
+            themeBtn.innerHTML = isDark ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>';
+            localStorage.setItem('presto-theme', newTheme);
+        };
+
+        const savedTheme = localStorage.getItem('presto-theme') || 'light';
+        body.setAttribute('data-theme', savedTheme);
+        themeBtn.innerHTML = savedTheme === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+
+        // --- التعامل مع البيانات ---
+        const nIn = document.getElementById('nameInput');
+        const rIn = document.getElementById('roleInput');
+        const sBtn = document.getElementById('submitBtn');
+        const list = document.getElementById('employeesList');
+        const count = document.getElementById('countDisplay');
+
+        sBtn.onclick = async () => {
+            if(nIn.value && rIn.value) {
                 await addDoc(collection(db, "employees"), {
-                    name: empName.value,
-                    role: empRole.value,
-                    joinDate: new Date()
+                    name: nIn.value,
+                    role: rIn.value,
+                    joinedAt: new Date()
                 });
-                empName.value = ""; empRole.value = "";
+                nIn.value = ""; rIn.value = "";
             }
         };
 
-        // تحديث الجدول المباشر
-        const q = query(collection(db, "employees"), orderBy("joinDate", "desc"));
-        onSnapshot(q, (snapshot) => {
-            empTable.innerHTML = "";
-            empCount.innerText = snapshot.size;
-            snapshot.forEach((doc) => {
-                const emp = doc.data();
-                empTable.innerHTML += `
+        onSnapshot(query(collection(db, "employees"), orderBy("joinedAt", "desc")), (snap) => {
+            list.innerHTML = "";
+            count.innerText = snap.size;
+            snap.forEach(doc => {
+                const d = doc.data();
+                list.innerHTML += `
                     <tr>
-                        <td><b>${emp.name}</b></td>
-                        <td>${emp.role}</td>
-                        <td>${emp.joinDate.toDate().toLocaleDateString()}</td>
-                        <td><span style="color: #0acf97; background: #e6fff7; padding: 4px 8px; border-radius: 4px; font-size: 12px;">موظف نشط</span></td>
+                        <td><div style="display:flex;align-items:center;gap:12px;"><div class="avatar-box">${d.name[0]}</div><b>${d.name}</b></div></td>
+                        <td>${d.role}</td>
+                        <td>${d.joinedAt.toDate().toLocaleDateString('ar-EG')}</td>
+                        <td><span style="color:var(--accent-green); background:rgba(0,184,148,0.1); padding:6px 14px; border-radius:10px; font-size:13px; font-weight:600;">نشط</span></td>
                     </tr>
                 `;
             });
         });
 
-        // عرض التاريخ الحالي
-        document.getElementById('date-display').innerText = new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        document.getElementById('dateDisplay').innerText = new Date().toLocaleDateString('ar-EG', { weekday:'long', day:'numeric', month:'long' });
     </script>
 </body>
 </html>
