@@ -242,9 +242,21 @@
                 <div id="view-home">
                     <div class="stats-row">
                         <div class="stat-box"><h4>إجمالي الموظفين</h4><div class="val" id="count-home">0</div></div>
-                        <div class="stat-box"><h4>المتواجدين الآن</h4><div class="val" id="online-count">0</div></div>
-                        <div class="stat-box"><h4>طلبات الأذونات</h4><div class="val" id="today-permissions">0</div></div>
-                        <div class="stat-box"><h4>طلبات الإجازة</h4><div class="val" id="today-leaves">0</div></div>
+                        <div class="stat-box" onclick="openStatsModal('online')">
+    <h4>المتواجدين الآن</h4>
+    <div class="val" id="online-count">51</div>
+</div>
+
+<div class="stat-box" onclick="openStatsModal('permissions')">
+    <h4>طلبات الأذونات</h4>
+    <div class="val" id="today-permissions">3</div>
+</div>
+
+<div class="stat-box" onclick="openStatsModal('leaves')">
+    <h4>طلبات الإجازة</h4>
+    <div class="val" id="today-leaves">0</div>
+</div>
+
                     </div>
                     <div class="card">
                         <h3><i class="far fa-calendar-alt" style="color: var(--primary);"></i> الجدول الزمني للإسبوع</h3>
@@ -434,6 +446,18 @@
             </div>
         </div>
     </div>
+
+    <div id="statsModal" class="modal-overlay">
+    <div class="modal-content" style="max-width:500px">
+        <h3 id="statsModalTitle">العنوان</h3>
+        <ol id="statsModalList" style="line-height:2; margin-top:20px"></ol>
+
+        <button onclick="closeStatsModal()" class="btn-main" style="margin-top:25px">
+            إغلاق
+        </button>
+    </div>
+</div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-auth.js";
@@ -1359,9 +1383,41 @@
             link.click(); 
             document.body.removeChild(link);
         };
+        window.openStatsModal = (type) => {
+    const titleEl = document.getElementById('statsModalTitle');
+    const listEl  = document.getElementById('statsModalList');
+    const modal   = document.getElementById('statsModal');
+
+    // بيانات تجريبية (بعدها نربطها بفايربيز)
+    let names = [];
+
+    if (type === 'online') {
+        titleEl.innerText = 'المتواجدين الآن';
+        names = ['محمد علي', 'سفيان عبدالجليل', 'أحمد سالم', 'خالد يوسف'];
+    }
+
+    if (type === 'permissions') {
+        titleEl.innerText = 'طلبات الأذونات';
+        names = ['يوسف رمضان', 'علي حسن', 'محمود فتحي'];
+    }
+
+    if (type === 'leaves') {
+        titleEl.innerText = 'طلبات الإجازة';
+        names = ['لا توجد بيانات'];
+    }
+
+    listEl.innerHTML = names.map(name => `<li>${name}</li>`).join('');
+    modal.style.display = 'flex';
+};
+
+window.closeStatsModal = () => {
+    document.getElementById('statsModal').style.display = 'none';
+};
+
     </script>
 </body>
 </html>
+
 
 
 
