@@ -1359,9 +1359,51 @@
             link.click(); 
             document.body.removeChild(link);
         };
+
+        // --- دالة عرض البوب أب (القائمة المرقمة) ---
+        // أضف هذا الكود في نهاية السكربت قبل </script>
+        window.showStatDetails = (type) => {
+            const modal = document.getElementById('detailsModal');
+            const title = document.getElementById('details-title');
+            const body = document.getElementById('details-body');
+            
+            let list = [];
+            let titleText = "";
+
+            // اختيار القائمة بناءً على البوكس المضغوط
+            if (type === 'online') {
+                list = listOnline; 
+                titleText = "قائمة المتواجدين الآن";
+            } else if (type === 'permissions') {
+                list = listPermissions;
+                titleText = "أصحاب الأذونات اليوم";
+            } else if (type === 'leaves') {
+                list = listLeaves;
+                titleText = "المجازين اليوم";
+            }
+
+            // تعيين العنوان
+            if(title) title.innerText = titleText;
+            
+            // بناء القائمة المرقمة داخل النافذة
+            if (list && list.length > 0) {
+                let html = '<ol style="padding-right: 25px; margin: 0; text-align: right; direction: rtl;">';
+                list.forEach(name => {
+                    html += `<li style="margin-bottom: 8px; font-weight: bold; color: var(--text-main); border-bottom: 1px solid #f0f0f0; padding-bottom: 5px;">${name}</li>`;
+                });
+                html += '</ol>';
+                if(body) body.innerHTML = html;
+            } else {
+                if(body) body.innerHTML = '<div style="text-align:center; padding:30px;"><i class="far fa-folder-open" style="font-size:30px; color:#ccc; margin-bottom:10px;"></i><p style="color:#999; margin:0;">لا يوجد سجلات لهذا اليوم</p></div>';
+            }
+
+            // إظهار النافذة
+            if(modal) modal.style.display = 'flex';
+        };
     </script>
 </body>
 </html>
+
 
 
 
