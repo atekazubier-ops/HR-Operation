@@ -243,20 +243,33 @@
 
             <div id="content-container" class="content-area">
                 <div id="view-home">
-                   <div class="stat-box clickable-box" onclick="showStatDetails('online')">
-                        <h4>المتواجدين الآن <i class="fas fa-list-ul" style="font-size:12px; opacity:0.5"></i></h4>
-                        <div class="val" id="online-count">0</div>
-                    </div>
+                  <div class="stats-row">
+                        <div class="stat-box">
+                            <h4>إجمالي الموظفين</h4>
+                            <div class="val" id="count-home">0</div>
+                        </div>
+                        
+                        <div class="stat-box clickable-box" onclick="showStatDetails('online')">
+                            <h4>المتواجدين الآن <i class="fas fa-list-ul" style="font-size:10px; opacity:0.5"></i></h4>
+                            <div class="val" id="online-count">0</div>
+                        </div>
 
-                    <div class="stat-box clickable-box" onclick="showStatDetails('permissions')">
-                        <h4>طلبات الأذونات <i class="fas fa-list-ul" style="font-size:12px; opacity:0.5"></i></h4>
-                        <div class="val" id="today-permissions">0</div>
-                    </div>
+                        <div class="stat-box clickable-box" onclick="showStatDetails('permissions')">
+                            <h4>طلبات الأذونات <i class="fas fa-list-ul" style="font-size:10px; opacity:0.5"></i></h4>
+                            <div class="val" id="today-permissions">0</div>
+                        </div>
 
-                    <div class="stat-box clickable-box" onclick="showStatDetails('leaves')">
-                        <h4>طلبات الإجازة <i class="fas fa-list-ul" style="font-size:12px; opacity:0.5"></i></h4>
-                        <div class="val" id="today-leaves">0</div>
+                        <div class="stat-box clickable-box" onclick="showStatDetails('leaves')">
+                            <h4>طلبات الإجازة <i class="fas fa-list-ul" style="font-size:10px; opacity:0.5"></i></h4>
+                            <div class="val" id="today-leaves">0</div>
+                        </div>
                     </div>
+                    ```
+
+**لماذا سيصلح هذا المشكلة؟**
+1.  **Grid Layout:** الكود محاط بـ `<div class="stats-row">` وهذا الكلاس في ملف الـ CSS الخاص بك مضبوط ليعرض العناصر بجانب بعضها (`grid-template-columns: repeat(4, 1fr)`).
+2.  **إجمالي الموظفين:** تمت إضافته كأول عنصر.
+3.  **قابلية الضغط:** تمت إضافة `onclick` للصناديق الثلاثة الأخرى فقط لتعمل القوائم المنبثقة.
                     <div class="card">
                         <h3><i class="far fa-calendar-alt" style="color: var(--primary);"></i> الجدول الزمني للإسبوع</h3>
                         <div style="overflow-x: auto;">
@@ -1382,6 +1395,7 @@
     </script>
 </body>
 </html>
+
 
 
 
