@@ -448,9 +448,9 @@
     </div>
 
     <div id="statsModal" class="modal-overlay">
-    <div class="modal-content" style="max-width:500px">
+    <div class="modal-content" style="max-width:500px; max-height:80vh; overflow-y:auto;">
         <h3 id="statsModalTitle">العنوان</h3>
-        <ol id="statsModalList" style="line-height:2; margin-top:20px"></ol>
+        <ol id="statsModalList" style="line-height:2; margin-top:20px; max-height:50vh; overflow-y:auto;"></ol>
 
         <button onclick="closeStatsModal()" class="btn-main" style="margin-top:25px">
             إغلاق
@@ -1417,6 +1417,7 @@ window.closeStatsModal = () => {
     </script>
 </body>
 </html>
+
 
 
 
