@@ -174,6 +174,9 @@
             .top-bar h2 { font-size: 18px; }
             #view-overtime .form-group { min-width: 100%; }
         }
+
+        .clickable-box { cursor: pointer; transition: transform 0.2s; }
+.clickable-box:hover { transform: translateY(-5px); border-color: var(--primary); }
     </style>
 </head>
 <body>
@@ -239,12 +242,26 @@
             </header>
 
             <div id="content-container" class="content-area">
-                <div id="view-home">
-                    <div class="stats-row">
-                        <div class="stat-box"><h4>إجمالي الموظفين</h4><div class="val" id="count-home">0</div></div>
-                        <div class="stat-box"><h4>المتواجدين الآن</h4><div class="val" id="online-count">0</div></div>
-                        <div class="stat-box"><h4>طلبات الأذونات</h4><div class="val" id="today-permissions">0</div></div>
-                        <div class="stat-box"><h4>طلبات الإجازة</h4><div class="val" id="today-leaves">0</div></div>
+               <div class="stats-row">
+                        <div class="stat-box">
+                            <h4>إجمالي الموظفين</h4>
+                            <div class="val" id="count-home">0</div>
+                        </div>
+                        
+                        <div class="stat-box clickable-box" onclick="showStatDetails('online')">
+                            <h4>المتواجدين الآن <i class="fas fa-list-ul" style="font-size:12px; opacity:0.5"></i></h4>
+                            <div class="val" id="online-count">0</div>
+                        </div>
+
+                        <div class="stat-box clickable-box" onclick="showStatDetails('permissions')">
+                            <h4>طلبات الأذونات <i class="fas fa-list-ul" style="font-size:12px; opacity:0.5"></i></h4>
+                            <div class="val" id="today-permissions">0</div>
+                        </div>
+
+                        <div class="stat-box clickable-box" onclick="showStatDetails('leaves')">
+                            <h4>طلبات الإجازة <i class="fas fa-list-ul" style="font-size:12px; opacity:0.5"></i></h4>
+                            <div class="val" id="today-leaves">0</div>
+                        </div>
                     </div>
                     <div class="card">
                         <h3><i class="far fa-calendar-alt" style="color: var(--primary);"></i> الجدول الزمني للإسبوع</h3>
@@ -432,6 +449,14 @@
                     إلغاء
                 </button>
             </div>
+        </div>
+    </div>
+    <div id="detailsModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <h3 id="details-title" style="margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;"></h3>
+            <div id="details-body" style="max-height: 300px; overflow-y: auto;">
+                </div>
+            <button onclick="document.getElementById('detailsModal').style.display='none'" class="btn-main" style="width:100%; margin-top:20px; justify-content:center; background:var(--secondary);">إغلاق</button>
         </div>
     </div>
     <script type="module">
@@ -1316,9 +1341,92 @@
             link.click(); 
             document.body.removeChild(link);
         };
+
+        // --- متغيرات لتخزين القوائم ---
+        let listOnline = [];
+        let listPermissions = [];
+        let listLeaves = [];
+
+        // --- تحديث الإحصائيات وحفظ الأسماء ---
+        async function updateDashboardStats() {
+            const now = new Date();
+            const todayStr = now.toISOString().split('T')[0];
+            const currentDayName = days[now.getDay()];
+
+            // 1. حساب المتواجدين وحفظ أسمائهم
+            listOnline = [];
+            allEmployees.forEach(emp => {
+                if (emp.schedule && emp.schedule[currentDayName] && emp.schedule[currentDayName] !== 'عطلة') {
+                    listOnline.push(emp.name);
+                }
+            });
+            document.getElementById('online-count').innerText = listOnline.length;
+
+            // 2. جلب الإجازات وحفظ الأسماء
+            try {
+                const leavesSnap = await getDocs(query(collection(db, 'artifacts', appId, 'public', 'data', 'leaves'), where('date', '==', todayStr)));
+                listLeaves = [];
+                leavesSnap.forEach(doc => {
+                    const empId = doc.data().empDocId;
+                    const emp = allEmployees.find(e => e.id === empId);
+                    if (emp) listLeaves.push(emp.name);
+                });
+                document.getElementById('today-leaves').innerText = listLeaves.length;
+            } catch(e) { console.log(e); }
+
+            // 3. جلب الأذونات وحفظ الأسماء
+            try {
+                const permsSnap = await getDocs(query(collection(db, 'artifacts', appId, 'public', 'data', 'permissions'), where('date', '==', todayStr)));
+                listPermissions = [];
+                permsSnap.forEach(doc => {
+                    const empId = doc.data().empDocId;
+                    const emp = allEmployees.find(e => e.id === empId);
+                    if (emp) listPermissions.push(emp.name);
+                });
+                document.getElementById('today-permissions').innerText = listPermissions.length;
+            } catch(e) { console.log(e); }
+        }
+
+        // --- دالة إظهار القائمة عند الضغط ---
+        window.showStatDetails = (type) => {
+            const modal = document.getElementById('detailsModal');
+            const title = document.getElementById('details-title');
+            const body = document.getElementById('details-body');
+            
+            let list = [];
+            let titleText = "";
+
+            if (type === 'online') {
+                list = listOnline;
+                titleText = "قائمة المتواجدين الآن";
+            } else if (type === 'permissions') {
+                list = listPermissions;
+                titleText = "أصحاب الأذونات اليوم";
+            } else if (type === 'leaves') {
+                list = listLeaves;
+                titleText = "المجازين اليوم";
+            }
+
+            title.innerText = titleText;
+            
+            if (list.length === 0) {
+                body.innerHTML = '<p style="text-align:center; color:#999;">لا يوجد أسماء حالياً</p>';
+            } else {
+                // إنشاء قائمة مرقمة
+                let html = '<ol style="padding-right: 20px; margin: 0;">';
+                list.forEach(name => {
+                    html += `<li style="margin-bottom: 8px; font-weight: bold; color: var(--text-main);">${name}</li>`;
+                });
+                html += '</ol>';
+                body.innerHTML = html;
+            }
+
+            modal.style.display = 'flex';
+        };
     </script>
 </body>
 </html>
+
 
 
 
