@@ -1257,6 +1257,8 @@
             };
             reader.readAsText(file); input.value = ''; 
         };
+        // --- متغير لتخزين بيانات البحث الحالية ---
+        let currentOvertimeData = []; 
 
         // --- 1. دالة البحث وعرض البيانات ---
         window.previewOvertimeData = async () => {
@@ -1401,8 +1403,6 @@
     </script>
 </body>
 </html>
-
-
 
 
 
