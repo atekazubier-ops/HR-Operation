@@ -174,73 +174,6 @@
             .top-bar h2 { font-size: 18px; }
             #view-overtime .form-group { min-width: 100%; }
         }
-
-        #statsListWrapper {
-    max-height: 45vh;
-    overflow-y: auto;
-    margin-top: 20px;
-    padding-left: 10px;
-}
-
-#statsModalList li {
-    margin-bottom: 8px;
-    font-weight: 600;
-}
-
-        .modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  display: none;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-}
-
-.modal-box {
-  background: #fff;
-  width: 90%;
-  max-width: 600px;
-  border-radius: 25px;
-  padding: 25px;
-  display: flex;
-  flex-direction: column;
-  direction: rtl;
-}
-
-.modal-body {
-  max-height: 55vh;   /* 👈 هنا الحل */
-  overflow-y: auto;
-  margin: 20px 0;
-  padding-left: 10px;
-}
-
-.modal-body li {
-  margin-bottom: 8px;
-  font-weight: 600;
-}
-
-.close-btn {
-  align-self: flex-start;
-  background: #ff6b4a;
-  color: #fff;
-  border: none;
-  padding: 10px 22px;
-  border-radius: 18px;
-  cursor: pointer;
-}
-#statsModalList {
-  display: block !important;
-  max-height: none !important;
-  overflow: visible !important;
-  column-count: 1 !important;
-}
-
-#statsModalList li {
-  display: list-item !important;
-  white-space: normal !important;
-}
-
     </style>
 </head>
 <body>
@@ -309,21 +242,9 @@
                 <div id="view-home">
                     <div class="stats-row">
                         <div class="stat-box"><h4>إجمالي الموظفين</h4><div class="val" id="count-home">0</div></div>
-                        <div class="stat-box" onclick="openStatsModal('online')">
-    <h4>المتواجدين الآن</h4>
-    <div class="val" id="online-count">51</div>
-</div>
-
-<div class="stat-box" onclick="openStatsModal('permissions')">
-    <h4>طلبات الأذونات</h4>
-    <div class="val" id="today-permissions">3</div>
-</div>
-
-<div class="stat-box" onclick="openStatsModal('leaves')">
-    <h4>طلبات الإجازة</h4>
-    <div class="val" id="today-leaves">0</div>
-</div>
-
+                        <div class="stat-box"><h4>المتواجدين الآن</h4><div class="val" id="online-count">0</div></div>
+                        <div class="stat-box"><h4>طلبات الأذونات</h4><div class="val" id="today-permissions">0</div></div>
+                        <div class="stat-box"><h4>طلبات الإجازة</h4><div class="val" id="today-leaves">0</div></div>
                     </div>
                     <div class="card">
                         <h3><i class="far fa-calendar-alt" style="color: var(--primary);"></i> الجدول الزمني للإسبوع</h3>
@@ -367,21 +288,33 @@
                 </div>
 
                 <div id="view-employees" class="hidden" style="grid-column: 1 / -1;">
-                    <div class="card">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
-                            <h3><i class="fas fa-id-card" style="color: var(--primary);"></i> سجل الموظفين</h3>
-                            <div style="flex: 1; max-width: 400px; position: relative;">
-                                <input type="text" id="search-emp-input" onkeyup="filterEmployees()" placeholder="بحث بالاسم أو الرقم الوظيفي..." style="width: 100%; padding: 12px 40px 12px 15px; border-radius: 15px; border: 1px solid var(--border-color); background: var(--bg-main);">
-                                <i class="fas fa-search" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
-                            </div>
-                            <button onclick="openModalForAdd()" class="btn-main"><i class="fas fa-plus-circle"></i> إضافة موظف</button>
-                        </div>
-                        <table class="data-table">
-                            <thead><tr><th>ID</th><th>الاسم</th><th>القسم</th><th>المسمى</th><th>الإجراءات</th></tr></thead>
-                            <tbody id="employeesTableBody"></tbody>
-                        </table>
-                    </div>
+                   <div id="view-employees" class="hidden" style="grid-column: 1 / -1;">
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+            <h3><i class="fas fa-id-card" style="color: var(--primary);"></i> سجل الموظفين</h3>
+            
+            <div style="display: flex; gap: 10px; flex: 1; max-width: 600px;">
+                <select onchange="changeSort(this.value)" style="width: 160px; padding: 12px; border-radius: 15px; border: 1px solid var(--border-color); background: var(--bg-main);">
+                    <option value="name">ترتيب حسب الاسم</option>
+                    <option value="id">ترتيب حسب الرقم</option>
+                    <option value="dept">ترتيب حسب القسم</option>
+                </select>
+
+                <div style="flex: 1; position: relative;">
+                    <input type="text" id="search-emp-input" onkeyup="filterEmployees()" placeholder="بحث بالاسم أو الرقم..." style="width: 100%; padding: 12px 40px 12px 15px; border-radius: 15px; border: 1px solid var(--border-color); background: var(--bg-main);">
+                    <i class="fas fa-search" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
                 </div>
+            </div>
+
+            <button onclick="openModalForAdd()" class="btn-main"><i class="fas fa-plus-circle"></i> إضافة موظف</button>
+        </div>
+        
+        <table class="data-table">
+            <thead><tr><th style="width: 50px;">#</th><th>ID</th><th>الاسم</th><th>القسم</th><th>المسمى</th><th>الإجراءات</th></tr></thead>
+            <tbody id="employeesTableBody"></tbody>
+        </table>
+    </div>
+</div>
 
                 <div id="view-overtime" class="hidden" style="grid-column: 1 / -1;">
                     <div class="card">
@@ -513,20 +446,6 @@
             </div>
         </div>
     </div>
-    
-<div id="statsModal" class="modal">
-  <div class="modal-box">
-    <h3 id="statsModalTitle">العنوان</h3>
-
-    <div class="modal-body">
-      <ol id="statsModalList"></ol>
-    </div>
-
-    <button class="close-btn" onclick="closeStatsModal()">إغلاق</button>
-  </div>
-</div>
-
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-auth.js";
@@ -754,33 +673,74 @@
         }
 
         // --- Core UI Updates ---
+       // 1. متغير لتخزين نوع الترتيب الحالي
+        let currentSort = 'name'; 
+
+        // 2. دالة لتغيير الترتيب عند اختيار القائمة المنسدلة
+        window.changeSort = (val) => {
+            currentSort = val;
+            updateUI(); // إعادة رسم الجدول
+        };
+
+        // 3. دالة تحديث الواجهة (المعدلة بالكامل)
         function updateUI() {
             const tableBody = document.getElementById('employeesTableBody');
             const countEl = document.getElementById('count-home');
             const scheduleRows = document.querySelectorAll('#home-schedule-body tr');
-            if(tableBody) tableBody.innerHTML = "";
-            if (countEl) countEl.innerText = allEmployees.length;
-            scheduleRows.forEach(r => { for(let i=1; i<8; i++) r.cells[i].innerHTML = ""; });
             
+            if (countEl) countEl.innerText = allEmployees.length;
+            
+            // تنظيف الجدول القديم
+            scheduleRows.forEach(r => { for(let i=1; i<8; i++) r.cells[i].innerHTML = ""; });
+            if(tableBody) tableBody.innerHTML = "";
+
             const queryText = document.getElementById('search-emp-input') ? document.getElementById('search-emp-input').value.toLowerCase() : "";
             
-            allEmployees.forEach(data => {
-                if (queryText && 
-                    !(data.name && data.name.toLowerCase().includes(queryText)) && 
-                    !(data.empId && data.empId.toLowerCase().includes(queryText))) {
-                    return;
+            // --- خطوة الفلترة (نسخة مؤقتة من البيانات) ---
+            let filteredList = allEmployees.filter(data => {
+                if (!queryText) return true;
+                return (data.name && data.name.toLowerCase().includes(queryText)) || 
+                       (data.empId && data.empId.toLowerCase().includes(queryText));
+            });
+
+            // --- خطوة الترتيب (Sorting) ---
+            filteredList.sort((a, b) => {
+                if (currentSort === 'name') {
+                    return (a.name || '').localeCompare(b.name || '', 'ar');
+                } else if (currentSort === 'id') {
+                    // محاولة ترتيب الأرقام بشكل صحيح (مثلاً 2 يأتي قبل 10)
+                    return (a.empId || '').localeCompare(b.empId || '', undefined, { numeric: true, sensitivity: 'base' });
+                } else if (currentSort === 'dept') {
+                    return (a.dept || '').localeCompare(b.dept || '', 'ar');
+                }
+                return 0;
+            });
+
+            // --- خطوة الرسم في الجدول ---
+            filteredList.forEach((data, index) => {
+                if(tableBody) {
+                    // لاحظ إضافة (index + 1) في العمود الأول
+                    tableBody.innerHTML += `
+                    <tr>
+                        <td style="font-weight:bold; color:var(--text-muted);">${index + 1}</td>
+                        <td style="font-weight:800; color:var(--primary)">${data.empId || '---'}</td>
+                        <td style="font-weight:700">${data.name || '---'}</td>
+                        <td>${data.dept || '---'}</td>
+                        <td>${data.role || '---'}</td>
+                        <td>
+                            <button onclick="viewProfile('${data.id}')" class="btn-action btn-view"><i class="fas fa-eye"></i></button>
+                            <button onclick="deleteEmp('${data.id}')" class="btn-action btn-delete"><i class="fas fa-trash-alt"></i></button>
+                        </td>
+                    </tr>`;
                 }
 
-                if(tableBody) {
-                    tableBody.innerHTML += `<tr><td style="font-weight:800; color:var(--primary)">${data.empId || '---'}</td><td style="font-weight:700">${data.name || '---'}</td><td>${data.dept || '---'}</td><td>${data.role || '---'}</td><td><button onclick="viewProfile('${data.id}')" class="btn-action btn-view"><i class="fas fa-eye"></i></button><button onclick="deleteEmp('${data.id}')" class="btn-action btn-delete"><i class="fas fa-trash-alt"></i></button></td></tr>`;
-                }
+                // تحديث الجدول الزمني (كما كان سابقاً)
                 if (data.schedule) {
                     days.forEach((day, idx) => {
                         const shift = data.schedule[day];
                         if (shift && shift !== "عطلة") {
                             const targetRow = Array.from(scheduleRows).find(r => r.dataset.shift === shift);
                             if (targetRow) {
-                                // تعديل: عرض أول اسمين في الجدول الرئيسي
                                 const displayName = data.name.split(' ').slice(0, 2).join(' ');
                                 targetRow.cells[idx+1].innerHTML += `<span class="emp-tag">${displayName}</span>`;
                             }
@@ -788,6 +748,7 @@
                     });
                 }
             });
+
             updateDashboardStats();
             updateBirthdayList();
             loadReminders();
@@ -1452,66 +1413,9 @@
             link.click(); 
             document.body.removeChild(link);
         };
-        window.openStatsModal = (type) => {
-    const titleEl = document.getElementById('statsModalTitle');
-    const listEl  = document.getElementById('statsModalList');
-    const modal   = document.getElementById('statsModal');
-
-    // بيانات تجريبية (بعدها نربطها بفايربيز)
-    let names = [];
-
-    if (type === 'online') {
-        titleEl.innerText = 'المتواجدين الآن';
-        names = ['محمد علي', 'سفيان عبدالجليل', 'أحمد سالم', 'خالد يوسف'];
-    }
-
-    if (type === 'permissions') {
-        titleEl.innerText = 'طلبات الأذونات';
-        names = ['يوسف رمضان', 'علي حسن', 'محمود فتحي'];
-    }
-
-    if (type === 'leaves') {
-        titleEl.innerText = 'طلبات الإجازة';
-        names = ['لا توجد بيانات'];
-    }
-
-    listEl.innerHTML = names.map(name => `<li>${name}</li>`).join('');
-    modal.style.display = 'flex';
-};
-
-window.closeStatsModal = () => {
-    document.getElementById('statsModal').style.display = 'none';
-};
-
-        function openStatsModal(type) {
-  const modal = document.getElementById("statsModal");
-  const title = document.getElementById("statsModalTitle");
-  const list  = document.getElementById("statsModalList");
-
-  // تجربة 45 اسم
-let names = Array.from({ length: 60 }, (_, i) => `اختبار رقم ${i + 1}`);
-
-  if (type === "online") title.innerText = "المتواجدين الآن";
-  if (type === "permissions") title.innerText = "طلبات الأذونات";
-  if (type === "leaves") title.innerText = "طلبات الإجازة";
-
-  list.innerHTML = names.map(n => `<li>${n}</li>`).join("");
-  modal.style.display = "flex";
-}
-
-function closeStatsModal() {
-  document.getElementById("statsModal").style.display = "none";
-}
-
     </script>
 </body>
 </html>
-
-
-
-
-
-
 
 
 
