@@ -288,33 +288,29 @@
                 </div>
 
                 <div id="view-employees" class="hidden" style="grid-column: 1 / -1;">
-                   <div id="view-employees" class="hidden" style="grid-column: 1 / -1;">
-    <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
-            <h3><i class="fas fa-id-card" style="color: var(--primary);"></i> سجل الموظفين</h3>
-            
-            <div style="display: flex; gap: 10px; flex: 1; max-width: 600px;">
-                <select onchange="changeSort(this.value)" style="width: 160px; padding: 12px; border-radius: 15px; border: 1px solid var(--border-color); background: var(--bg-main);">
-                    <option value="name">ترتيب حسب الاسم</option>
-                    <option value="id">ترتيب حسب الرقم</option>
-                    <option value="dept">ترتيب حسب القسم</option>
-                </select>
-
-                <div style="flex: 1; position: relative;">
-                    <input type="text" id="search-emp-input" onkeyup="filterEmployees()" placeholder="بحث بالاسم أو الرقم..." style="width: 100%; padding: 12px 40px 12px 15px; border-radius: 15px; border: 1px solid var(--border-color); background: var(--bg-main);">
-                    <i class="fas fa-search" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                            <h3><i class="fas fa-id-card" style="color: var(--primary);"></i> سجل الموظفين</h3>
+                            <div style="flex: 1; max-width: 400px; position: relative;">
+                                <input type="text" id="search-emp-input" onkeyup="filterEmployees()" placeholder="بحث بالاسم أو الرقم الوظيفي..." style="width: 100%; padding: 12px 40px 12px 15px; border-radius: 15px; border: 1px solid var(--border-color); background: var(--bg-main);">
+                                <i class="fas fa-search" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+                            </div>
+                            <button onclick="openModalForAdd()" class="btn-main"><i class="fas fa-plus-circle"></i> إضافة موظف</button>
+                        </div>
+                        <table class="data-table">
+    <thead>
+        <tr>
+            <th style="width: 50px;">#</th> <th>ID</th>
+            <th>الاسم</th>
+            <th>القسم</th>
+            <th>المسمى</th>
+            <th>الإجراءات</th>
+        </tr>
+    </thead>
+    <tbody id="employeesTableBody"></tbody>
+</table>
+                    </div>
                 </div>
-            </div>
-
-            <button onclick="openModalForAdd()" class="btn-main"><i class="fas fa-plus-circle"></i> إضافة موظف</button>
-        </div>
-        
-        <table class="data-table">
-            <thead><tr><th style="width: 50px;">#</th><th>ID</th><th>الاسم</th><th>القسم</th><th>المسمى</th><th>الإجراءات</th></tr></thead>
-            <tbody id="employeesTableBody"></tbody>
-        </table>
-    </div>
-</div>
 
                 <div id="view-overtime" class="hidden" style="grid-column: 1 / -1;">
                     <div class="card">
@@ -673,57 +669,46 @@
         }
 
         // --- Core UI Updates ---
-       // 1. متغير لتخزين نوع الترتيب الحالي
-        let currentSort = 'name'; 
-
-        // 2. دالة لتغيير الترتيب عند اختيار القائمة المنسدلة
-        window.changeSort = (val) => {
-            currentSort = val;
-            updateUI(); // إعادة رسم الجدول
-        };
-
-        // 3. دالة تحديث الواجهة (المعدلة بالكامل)
         function updateUI() {
             const tableBody = document.getElementById('employeesTableBody');
             const countEl = document.getElementById('count-home');
             const scheduleRows = document.querySelectorAll('#home-schedule-body tr');
             
+            // تحديث عدد الموظفين في اللوحة الرئيسية
             if (countEl) countEl.innerText = allEmployees.length;
             
-            // تنظيف الجدول القديم
+            // تنظيف الجدول الزمني
             scheduleRows.forEach(r => { for(let i=1; i<8; i++) r.cells[i].innerHTML = ""; });
+            
+            // تنظيف جدول الموظفين
             if(tableBody) tableBody.innerHTML = "";
-
+            
             const queryText = document.getElementById('search-emp-input') ? document.getElementById('search-emp-input').value.toLowerCase() : "";
             
-            // --- خطوة الفلترة (نسخة مؤقتة من البيانات) ---
+            // 1. تصفية القائمة (Search Filter)
             let filteredList = allEmployees.filter(data => {
-                if (!queryText) return true;
-                return (data.name && data.name.toLowerCase().includes(queryText)) || 
-                       (data.empId && data.empId.toLowerCase().includes(queryText));
-            });
-
-            // --- خطوة الترتيب (Sorting) ---
-            filteredList.sort((a, b) => {
-                if (currentSort === 'name') {
-                    return (a.name || '').localeCompare(b.name || '', 'ar');
-                } else if (currentSort === 'id') {
-                    // محاولة ترتيب الأرقام بشكل صحيح (مثلاً 2 يأتي قبل 10)
-                    return (a.empId || '').localeCompare(b.empId || '', undefined, { numeric: true, sensitivity: 'base' });
-                } else if (currentSort === 'dept') {
-                    return (a.dept || '').localeCompare(b.dept || '', 'ar');
+                if (queryText && 
+                    !(data.name && data.name.toLowerCase().includes(queryText)) && 
+                    !(data.empId && data.empId.toLowerCase().includes(queryText))) {
+                    return false;
                 }
-                return 0;
+                return true;
             });
 
-            // --- خطوة الرسم في الجدول ---
+            // 2. الترتيب حسب الرقم الوظيفي (Sorting by empId)
+            // نستخدم numeric: true لضمان أن PR-2 يأتي قبل PR-10
+            filteredList.sort((a, b) => {
+                const idA = a.empId || "";
+                const idB = b.empId || "";
+                return idA.localeCompare(idB, undefined, { numeric: true, sensitivity: 'base' });
+            });
+
+            // 3. عرض البيانات في الجدول
             filteredList.forEach((data, index) => {
                 if(tableBody) {
-                    // لاحظ إضافة (index + 1) في العمود الأول
                     tableBody.innerHTML += `
                     <tr>
-                        <td style="font-weight:bold; color:var(--text-muted);">${index + 1}</td>
-                        <td style="font-weight:800; color:var(--primary)">${data.empId || '---'}</td>
+                        <td style="font-weight:bold; color:var(--text-muted);">${index + 1}</td> <td style="font-weight:800; color:var(--primary)">${data.empId || '---'}</td>
                         <td style="font-weight:700">${data.name || '---'}</td>
                         <td>${data.dept || '---'}</td>
                         <td>${data.role || '---'}</td>
@@ -734,7 +719,7 @@
                     </tr>`;
                 }
 
-                // تحديث الجدول الزمني (كما كان سابقاً)
+                // تحديث الجدول الزمني في الصفحة الرئيسية (نفس الكود القديم)
                 if (data.schedule) {
                     days.forEach((day, idx) => {
                         const shift = data.schedule[day];
