@@ -174,9 +174,6 @@
             .top-bar h2 { font-size: 18px; }
             #view-overtime .form-group { min-width: 100%; }
         }
-
-        .clickable-box { cursor: pointer; transition: transform 0.2s; }
-.clickable-box:hover { transform: translateY(-5px); border-color: var(--primary); }
     </style>
 </head>
 <body>
@@ -243,30 +240,27 @@
 
             <div id="content-container" class="content-area">
                 <div id="view-home">
-                  <div class="stats-row">
-                        <div class="stat-box">
-                            <h4>إجمالي الموظفين</h4>
-                            <div class="val" id="count-home">0</div>
-                        </div>
-                        
-                        <div class="stat-box clickable-box" onclick="showStatDetails('online')">
-                            <h4>المتواجدين الآن <i class="fas fa-list-ul" style="font-size:10px; opacity:0.5"></i></h4>
-                            <div class="val" id="online-count">0</div>
-                        </div>
+                    <div class="stats-row">
+    <div class="stat-box">
+        <h4>إجمالي الموظفين</h4>
+        <div class="val" id="count-home">0</div>
+    </div>
+    
+    <div class="stat-box clickable-box" onclick="showStatDetails('online')">
+        <h4>المتواجدين الآن <i class="fas fa-list-ul" style="font-size:10px; opacity:0.5"></i></h4>
+        <div class="val" id="online-count">0</div>
+    </div>
 
-                        <div class="stat-box clickable-box" onclick="showStatDetails('permissions')">
-                            <h4>طلبات الأذونات <i class="fas fa-list-ul" style="font-size:10px; opacity:0.5"></i></h4>
-                            <div class="val" id="today-permissions">0</div>
-                        </div>
+    <div class="stat-box clickable-box" onclick="showStatDetails('permissions')">
+        <h4>طلبات الأذونات <i class="fas fa-list-ul" style="font-size:10px; opacity:0.5"></i></h4>
+        <div class="val" id="today-permissions">0</div>
+    </div>
 
-                        <div class="stat-box clickable-box" onclick="showStatDetails('leaves')">
-                            <h4>طلبات الإجازة <i class="fas fa-list-ul" style="font-size:10px; opacity:0.5"></i></h4>
-                            <div class="val" id="today-leaves">0</div>
-                        </div>
-                    </div>
-                    ```
-
-
+    <div class="stat-box clickable-box" onclick="showStatDetails('leaves')">
+        <h4>طلبات الإجازة <i class="fas fa-list-ul" style="font-size:10px; opacity:0.5"></i></h4>
+        <div class="val" id="today-leaves">0</div>
+    </div>
+</div>
                     <div class="card">
                         <h3><i class="far fa-calendar-alt" style="color: var(--primary);"></i> الجدول الزمني للإسبوع</h3>
                         <div style="overflow-x: auto;">
@@ -455,6 +449,15 @@
             </div>
         </div>
     </div>
+
+    <div id="detailsModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 400px; max-height: 80vh; overflow: hidden; display: flex; flex-direction: column;">
+        <h3 id="details-title" style="margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;"></h3>
+        <div id="details-body" style="flex: 1; overflow-y: auto; padding-left: 10px;">
+            </div>
+        <button onclick="document.getElementById('detailsModal').style.display='none'" class="btn-main" style="width:100%; margin-top:20px; justify-content:center; background:var(--secondary);">إغلاق</button>
+    </div>
+</div>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-auth.js";
@@ -724,87 +727,35 @@
 
         window.filterEmployees = () => updateUI();
 
-       // --- متغيرات لتخزين القوائم (أضفها مع بقية المتغيرات في الأعلى أو هنا) ---
-        // ملاحظة: تأكد أنك لم تعرفها مرتين. إذا كانت موجودة سابقاً، امسح القديمة.
-        
-        // --- تحديث الإحصائيات وحفظ الأسماء (استبدل الدالة القديمة بهذه) ---
         async function updateDashboardStats() {
             const now = new Date();
-            const todayStr = now.toISOString().split('T')[0];
-            const currentDayName = days[now.getDay()];
-
-            // 1. حساب المتواجدين وحفظ أسمائهم
-            listOnline = [];
-            allEmployees.forEach(emp => {
-                // شرط التواجد: لديه شيفت اليوم وليس عطلة
-                if (emp.schedule && emp.schedule[currentDayName] && emp.schedule[currentDayName] !== 'عطلة') {
-                    listOnline.push(emp.name);
-                }
-            });
-            document.getElementById('online-count').innerText = listOnline.length;
-
-            // 2. جلب الإجازات وحفظ الأسماء
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const todayStr = `${year}-${month}-${day}`;
             try {
-                const leavesSnap = await getDocs(query(collection(db, 'artifacts', appId, 'public', 'data', 'leaves'), where('date', '==', todayStr)));
-                listLeaves = [];
-                leavesSnap.forEach(doc => {
-                    const empId = doc.data().empDocId;
-                    const emp = allEmployees.find(e => e.id === empId);
-                    if (emp) listLeaves.push(emp.name);
-                });
-                document.getElementById('today-leaves').innerText = listLeaves.length;
-            } catch(e) { console.log("خطأ في جلب الإجازات", e); }
+                const leavesRef = collection(db, 'artifacts', appId, 'public', 'data', 'leaves');
+                const leavesSnap = await getDocs(query(leavesRef, where('date', '==', todayStr)));
+                const leavesEl = document.getElementById('today-leaves');
+                if (leavesEl) leavesEl.innerText = leavesSnap.size;
 
-            // 3. جلب الأذونات وحفظ الأسماء
-            try {
-                const permsSnap = await getDocs(query(collection(db, 'artifacts', appId, 'public', 'data', 'permissions'), where('date', '==', todayStr)));
-                listPermissions = [];
-                permsSnap.forEach(doc => {
-                    const empId = doc.data().empDocId;
-                    const emp = allEmployees.find(e => e.id === empId);
-                    if (emp) listPermissions.push(emp.name);
+                const permsRef = collection(db, 'artifacts', appId, 'public', 'data', 'permissions');
+                const permsSnap = await getDocs(query(permsRef, where('date', '==', todayStr)));
+                const permsEl = document.getElementById('today-permissions');
+                if (permsEl) permsEl.innerText = permsSnap.size;
+
+                const currentDayIndex = now.getDay(); 
+                const arabicDay = days[currentDayIndex];
+                let onlineCount = 0;
+                allEmployees.forEach(emp => {
+                    if (emp.schedule && emp.schedule[arabicDay] && emp.schedule[arabicDay] !== 'عطلة') {
+                        onlineCount++;
+                    }
                 });
-                document.getElementById('today-permissions').innerText = listPermissions.length;
-            } catch(e) { console.log("خطأ في جلب الأذونات", e); }
+                const onlineEl = document.getElementById('online-count');
+                if (onlineEl) onlineEl.innerText = onlineCount;
+            } catch (error) { console.error("Stats Error:", error); }
         }
-
-        // --- دالة إظهار القائمة عند الضغط (جديدة) ---
-        // تأكد من أنك أضفت window. لكي يراها HTML
-        window.showStatDetails = (type) => {
-            const modal = document.getElementById('detailsModal');
-            const title = document.getElementById('details-title');
-            const body = document.getElementById('details-body');
-            
-            let list = [];
-            let titleText = "";
-
-            if (type === 'online') {
-                list = listOnline;
-                titleText = "قائمة المتواجدين الآن";
-            } else if (type === 'permissions') {
-                list = listPermissions;
-                titleText = "أصحاب الأذونات اليوم";
-            } else if (type === 'leaves') {
-                list = listLeaves;
-                titleText = "المجازين اليوم";
-            }
-
-            if(title) title.innerText = titleText;
-            
-            if (list.length === 0) {
-                if(body) body.innerHTML = '<p style="text-align:center; color:#999; padding:20px;">لا يوجد أسماء حالياً</p>';
-            } else {
-                // إنشاء قائمة مرقمة
-                let html = '<ol style="padding-right: 20px; margin: 0; text-align:right;">';
-                list.forEach(name => {
-                    html += `<li style="margin-bottom: 8px; font-weight: bold; color: var(--text-main); border-bottom:1px solid #f0f0f0; padding-bottom:5px;">${name}</li>`;
-                });
-                html += '</ol>';
-                if(body) body.innerHTML = html;
-            }
-
-            if(modal) modal.style.display = 'flex';
-        };
 
         function updateBirthdayList() {
             const listEl = document.getElementById('birthday-list');
@@ -1389,11 +1340,47 @@
             link.click(); 
             document.body.removeChild(link);
         };
+
+        // أضف هذا الكود في نهاية السكربت
+window.showStatDetails = (type) => {
+    const modal = document.getElementById('detailsModal');
+    const title = document.getElementById('details-title');
+    const body = document.getElementById('details-body');
+    
+    let list = [];
+    let titleText = "";
+
+    // تحديد القائمة بناءً على البوكس المضغوط
+    if (type === 'online') {
+        list = listOnline; // يأخذ البيانات من الحساب الموجود مسبقاً
+        titleText = "قائمة المتواجدين الآن";
+    } else if (type === 'permissions') {
+        list = listPermissions;
+        titleText = "أصحاب الأذونات اليوم";
+    } else if (type === 'leaves') {
+        list = listLeaves;
+        titleText = "المجازين اليوم";
+    }
+
+    title.innerText = titleText;
+    
+    // إنشاء القائمة المرقمة
+    if (list && list.length > 0) {
+        let html = '<ol style="padding-right: 20px; margin: 0; text-align: right;">';
+        list.forEach(name => {
+            html += `<li style="margin-bottom: 8px; font-weight: bold; color: var(--text-main); border-bottom: 1px solid #f9f9f9; padding-bottom: 5px;">${name}</li>`;
+        });
+        html += '</ol>';
+        body.innerHTML = html;
+    } else {
+        body.innerHTML = '<p style="text-align:center; color:#999; padding:20px;">لا يوجد أسماء لعرضها</p>';
+    }
+
+    modal.style.display = 'flex';
+};
     </script>
 </body>
 </html>
-
-
 
 
 
