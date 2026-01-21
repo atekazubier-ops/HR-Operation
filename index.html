@@ -298,17 +298,9 @@
                             <button onclick="openModalForAdd()" class="btn-main"><i class="fas fa-plus-circle"></i> إضافة موظف</button>
                         </div>
                         <table class="data-table">
-    <thead>
-        <tr>
-            <th style="width: 50px;">#</th> <th>ID</th>
-            <th>الاسم</th>
-            <th>القسم</th>
-            <th>المسمى</th>
-            <th>الإجراءات</th>
-        </tr>
-    </thead>
-    <tbody id="employeesTableBody"></tbody>
-</table>
+                            <thead><tr><th>ID</th><th>الاسم</th><th>القسم</th><th>المسمى</th><th>الإجراءات</th></tr></thead>
+                            <tbody id="employeesTableBody"></tbody>
+                        </table>
                     </div>
                 </div>
 
@@ -669,23 +661,22 @@
         }
 
         // --- Core UI Updates ---
-        function updateUI() {
+     function updateUI() {
             const tableBody = document.getElementById('employeesTableBody');
             const countEl = document.getElementById('count-home');
             const scheduleRows = document.querySelectorAll('#home-schedule-body tr');
             
-            // تحديث عدد الموظفين في اللوحة الرئيسية
+            // تحديث عداد الموظفين في الصفحة الرئيسية
             if (countEl) countEl.innerText = allEmployees.length;
             
-            // تنظيف الجدول الزمني
+            // مسح محتوى الجداول القديم
             scheduleRows.forEach(r => { for(let i=1; i<8; i++) r.cells[i].innerHTML = ""; });
-            
-            // تنظيف جدول الموظفين
             if(tableBody) tableBody.innerHTML = "";
             
+            // الحصول على نص البحث (إن وجد)
             const queryText = document.getElementById('search-emp-input') ? document.getElementById('search-emp-input').value.toLowerCase() : "";
             
-            // 1. تصفية القائمة (Search Filter)
+            // 1. تصفية الموظفين بناءً على البحث
             let filteredList = allEmployees.filter(data => {
                 if (queryText && 
                     !(data.name && data.name.toLowerCase().includes(queryText)) && 
@@ -695,15 +686,15 @@
                 return true;
             });
 
-            // 2. الترتيب حسب الرقم الوظيفي (Sorting by empId)
-            // نستخدم numeric: true لضمان أن PR-2 يأتي قبل PR-10
+            // 2. ترتيب الموظفين حسب الرقم الوظيفي (ID)
+            // نستخدم { numeric: true } لضمان ترتيب الأرقام بشكل صحيح (1, 2, 10) بدلاً من النصي (1, 10, 2)
             filteredList.sort((a, b) => {
                 const idA = a.empId || "";
                 const idB = b.empId || "";
                 return idA.localeCompare(idB, undefined, { numeric: true, sensitivity: 'base' });
             });
 
-            // 3. عرض البيانات في الجدول
+            // 3. بناء الجدول بالبيانات المرتبة
             filteredList.forEach((data, index) => {
                 if(tableBody) {
                     tableBody.innerHTML += `
@@ -719,13 +710,14 @@
                     </tr>`;
                 }
 
-                // تحديث الجدول الزمني في الصفحة الرئيسية (نفس الكود القديم)
+                // تحديث الجدول الزمني في الصفحة الرئيسية (كما كان سابقاً)
                 if (data.schedule) {
                     days.forEach((day, idx) => {
                         const shift = data.schedule[day];
                         if (shift && shift !== "عطلة") {
                             const targetRow = Array.from(scheduleRows).find(r => r.dataset.shift === shift);
                             if (targetRow) {
+                                // عرض أول اسمين فقط
                                 const displayName = data.name.split(' ').slice(0, 2).join(' ');
                                 targetRow.cells[idx+1].innerHTML += `<span class="emp-tag">${displayName}</span>`;
                             }
