@@ -713,52 +713,72 @@
             }
         };
 
-        function startListening() {
+       function startListening() {
             if (!currentUser) return;
+
+            // 1. مراقبة الموظفين
             const empColRef = collection(db, 'artifacts', appId, 'public', 'data', 'employees_v7');
             unsubscribeSnapshot = onSnapshot(query(empColRef), (snap) => {
                 allEmployees = [];
                 snap.forEach(docSnap => allEmployees.push({ id: docSnap.id, ...docSnap.data() }));
                 updateUI();
                 const profileView = document.getElementById('view-profile');
-                if (!profileView.classList.contains('hidden')) {
+                if (profileView && !profileView.classList.contains('hidden')) {
                    const activeId = document.getElementById('edit-doc-id').value;
                    if(activeId) viewProfile(activeId);
                 }
             });
 
+            // 2. مراقبة الإجازات
             const leavesColRef = collection(db, 'artifacts', appId, 'public', 'data', 'leaves');
             unsubscribeLeaves = onSnapshot(query(leavesColRef), (snap) => {
-allPermissionsGlobal = []; // تفريغ المصفوفة
-snap.forEach(doc => allPermissionsGlobal.push({id: doc.id, ...doc.data()}));
+                allLeavesGlobal = [];
+                snap.forEach(docSnap => allLeavesGlobal.push(docSnap.data()));
                 updateWeeklyLeavesTable();
                 updateDashboardStats();
+                
+                // تحديث التقويم إذا كان مفتوحاً
+                const calView = document.getElementById('view-calendar');
+                if (calView && !calView.classList.contains('hidden')) {
+                    renderMonthlyCalendar();
+                }
             });
+
+            // 3. مراقبة الأذونات (إصلاح الخطأ هنا)
             const permsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'permissions');
             unsubscribePermissions = onSnapshot(query(permsColRef), (snap) => {
+                allPermissionsGlobal = []; // تفريغ المصفوفة أولاً
+                
+                // حفظ البيانات في المصفوفة العامة
+                snap.forEach(doc => {
+                    allPermissionsGlobal.push({id: doc.id, ...doc.data()});
+                });
+
+                // حساب عداد اليوم
                 const now = new Date();
-                // توحيد صيغة التاريخ (YYYY-MM-DD) لمطابقة قاعدة البيانات
                 const year = now.getFullYear();
                 const month = String(now.getMonth() + 1).padStart(2, '0');
                 const day = String(now.getDate()).padStart(2, '0');
                 const todayStr = `${year}-${month}-${day}`;
 
                 let count = 0;
-                snap.forEach(doc => {
-                    allPermissionsGlobal.forEach(p => {
-                if (p.date === todayStr) count++;
-            });
+                allPermissionsGlobal.forEach(p => {
+                    if (p.date === todayStr) count++;
+                });
 
                 // تحديث العداد في الصفحة
                 const el = document.getElementById('today-permissions');
                 if (el) el.innerText = count;
-           // تحديث التقويم إذا كان مفتوحاً
-            const calView = document.getElementById('view-calendar');
-            if (calView && !calView.classList.contains('hidden')) {
-                renderMonthlyCalendar();
-            }
-        });
 
+                // تحديث التقويم إذا كان مفتوحاً (لإظهار الأذونات الجديدة)
+                const calView = document.getElementById('view-calendar');
+                if (calView && !calView.classList.contains('hidden')) {
+                    renderMonthlyCalendar();
+                }
+            });
+        }
+
+        // تم فصل هذه الدالة لتكون خارج startListening (هذا كان سبب المشكلة)
         function updateWeeklyLeavesTable() {
             const tbody = document.getElementById('weekly-leaves-body');
             if (!tbody) return;
@@ -768,7 +788,13 @@ snap.forEach(doc => allPermissionsGlobal.push({id: doc.id, ...doc.data()}));
             const weekDates = [];
             for (let i = 0; i < 7; i++) {
                 let day = new Date(curr.setDate(first + i));
-                const dateStr = day.toISOString().slice(0, 10); 
+                // const dateStr = day.toISOString().slice(0, 10); // الطريقة القديمة
+                // الطريقة المحلية الصحيحة
+                const y = day.getFullYear();
+                const m = String(day.getMonth() + 1).padStart(2, '0');
+                const d = String(day.getDate()).padStart(2, '0');
+                const dateStr = `${y}-${m}-${d}`;
+                
                 weekDates.push(dateStr);
                 const headerDate = document.getElementById(`d-${i}`);
                 if(headerDate) headerDate.innerText = `${day.getDate()}/${day.getMonth()+1}`;
@@ -778,9 +804,17 @@ snap.forEach(doc => allPermissionsGlobal.push({id: doc.id, ...doc.data()}));
                 rowHtml += '<td>';
                 const activeLeaves = allLeavesGlobal.filter(leave => {
                     const startDate = new Date(leave.date);
-                    const endDate = new Date(leave.date);
-                    endDate.setDate(endDate.getDate() + (parseFloat(leave.daysCount) - 1));
+                    // توحيد الوقت للمقارنة الصحيحة
+                    startDate.setHours(0,0,0,0);
+                    
+                    const duration = parseFloat(leave.daysCount || 1);
+                    const endDate = new Date(startDate);
+                    endDate.setDate(endDate.getDate() + (duration - 1));
+                    endDate.setHours(23,59,59,999);
+
                     const targetDate = new Date(dateStr);
+                    targetDate.setHours(12,0,0,0); // منتصف النهار لتجنب مشاكل الحدود
+
                     return targetDate >= startDate && targetDate <= endDate;
                 });
                 activeLeaves.forEach(leave => {
@@ -790,7 +824,6 @@ snap.forEach(doc => allPermissionsGlobal.push({id: doc.id, ...doc.data()}));
                         if (leave.type === "مرضية") color = "#f1c40f"; 
                         if (leave.type === "طارئة") color = "#e67e22"; 
                         
-                        // تعديل: عرض أول اسمين (محمد علي)
                         const displayName = emp.name.split(' ').slice(0, 2).join(' ');
                         
                         rowHtml += `<span class="emp-tag" style="background:${color}; color:white; font-size:10px; margin-bottom:3px;">${displayName}</span>`;
@@ -801,7 +834,6 @@ snap.forEach(doc => allPermissionsGlobal.push({id: doc.id, ...doc.data()}));
             rowHtml += '</tr>';
             tbody.innerHTML = rowHtml;
         }
-
         // --- Core UI Updates ---
      function updateUI() {
             const tableBody = document.getElementById('employeesTableBody');
@@ -1831,6 +1863,7 @@ snap.forEach(doc => allPermissionsGlobal.push({id: doc.id, ...doc.data()}));
     </script>
 </body>
 </html>
+
 
 
 
