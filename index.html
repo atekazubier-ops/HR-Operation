@@ -1445,17 +1445,46 @@
             }
         };
 
-        window.showView = (v) => {
-            ['home', 'employees', 'profile', 'overtime'].forEach(view => { const el = document.getElementById(`view-${view}`); if (el) el.className = (v === view ? '' : 'hidden'); });
-            const sideEl = document.getElementById('side-widgets'); if (sideEl) sideEl.className = (v === 'home' ? 'side-widgets' : 'hidden');
-            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            const activeNav = document.getElementById(`link-${v === 'profile' ? 'employees' : v}`); if(activeNav) activeNav.classList.add('active');
-            const titleEl = document.getElementById('page-title'); const titles = { 'home': 'لوحة التحكم', 'employees': 'سجل الموظفين', 'profile': 'الملف الشخصي', 'overtime': 'احتساب العمل الإضافي' }; if (titleEl) titleEl.innerText = titles[v] || 'Presto HR';
-            const containerEl = document.getElementById('content-container'); if (containerEl) containerEl.className = (v === 'home' ? 'content-area' : 'content-area full-width');
-        };
+      window.showView = (v) => {
+            // 1. إخفاء/إظهار الصفحات الرئيسية
+            ['home', 'employees', 'profile', 'overtime', 'calendar'].forEach(view => { 
+                const el = document.getElementById(`view-${view}`); 
+                if (el) el.className = (v === view ? '' : 'hidden'); 
+            });
+            
+            // 2. (هذا هو الإصلاح) إخفاء/إظهار القائمة الجانبية (التذكيرات وأعياد الميلاد)
+            const sideEl = document.getElementById('side-widgets'); 
+            if (sideEl) {
+                // تظهر فقط في الصفحة الرئيسية، وتختفي في الباقي
+                sideEl.className = (v === 'home' ? 'side-widgets' : 'hidden');
+            }
 
-        window.toggleTheme = () => { const current = document.body.getAttribute('data-theme'); document.body.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark'); };
-        function showToast(msg) { const t = document.getElementById('toast'); if (t) { t.innerText = msg; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000); } }
+            // 3. تحديث الشريط الجانبي (Nav Links)
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            const activeNav = document.getElementById(`link-${v === 'profile' ? 'employees' : v}`); 
+            if(activeNav) activeNav.classList.add('active');
+            
+            // 4. تحديث العرض (Grid Layout) ليكون كاملاً عند إخفاء القائمة الجانبية
+            const titleEl = document.getElementById('page-title'); 
+            const titles = { 'home': 'لوحة التحكم', 'employees': 'سجل الموظفين', 'profile': 'الملف الشخصي', 'overtime': 'احتساب العمل الإضافي', 'calendar': 'التقويم الشهري' }; 
+            if (titleEl) titleEl.innerText = titles[v] || 'Presto HR';
+
+            const containerEl = document.getElementById('content-container'); 
+            if (containerEl) {
+                // إذا كانت الصفحة الرئيسية: عرض بعمودين. غير ذلك: عرض كامل.
+                containerEl.className = (v === 'home' ? 'content-area' : 'content-area full-width');
+            }
+
+            // 5. إذا تم فتح التقويم، قم بتحميله
+            if (v === 'calendar') {
+                const picker = document.getElementById('cal-month-picker');
+                if (!picker.value) {
+                    const now = new Date();
+                    picker.value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+                }
+                renderMonthlyCalendar();
+            }
+        };
 
         // --- Export/Import ---
         window.exportData = async () => {
@@ -1896,6 +1925,7 @@
     </script>
 </body>
 </html>
+
 
 
 
