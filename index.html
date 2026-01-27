@@ -1726,6 +1726,54 @@
                 renderMonthlyCalendar();
             }
         };
+        // الدالة الشاملة والوحيدة للتنقل (تصلح مشكلة التذكيرات وتدعم التقويم)
+        window.showView = (v) => {
+            // 1. إخفاء جميع الصفحات وإظهار الصفحة المطلوبة
+            ['home', 'employees', 'profile', 'overtime', 'calendar'].forEach(view => { 
+                const el = document.getElementById(`view-${view}`); 
+                if (el) el.className = (v === view ? '' : 'hidden'); 
+            });
+            
+            // 2. (هام جداً) إخفاء التذكيرات وأعياد الميلاد في جميع الصفحات ما عدا الرئيسية
+            const sideEl = document.getElementById('side-widgets'); 
+            if (sideEl) {
+                sideEl.className = (v === 'home' ? 'side-widgets' : 'hidden');
+            }
+
+            // 3. تحديث القائمة الجانبية (الزر النشط)
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            const activeNav = document.getElementById(`link-${v === 'profile' ? 'employees' : v}`); 
+            if(activeNav) activeNav.classList.add('active');
+            
+            // 4. تحديث تخطيط الصفحة والعناوين
+            const titleEl = document.getElementById('page-title'); 
+            const titles = { 
+                'home': 'لوحة التحكم', 
+                'employees': 'سجل الموظفين', 
+                'profile': 'الملف الشخصي', 
+                'overtime': 'احتساب العمل الإضافي', 
+                'calendar': 'التقويم الشهري' 
+            }; 
+            if (titleEl) titleEl.innerText = titles[v] || 'Presto HR';
+
+            const containerEl = document.getElementById('content-container'); 
+            if (containerEl) {
+                // عرض بعمودين في الرئيسية فقط، وعمود واحد في الباقي
+                containerEl.className = (v === 'home' ? 'content-area' : 'content-area full-width');
+            }
+
+            // 5. تحميل التقويم عند فتح صفحته
+            if (v === 'calendar') {
+                const picker = document.getElementById('cal-month-picker');
+                if (picker && !picker.value) {
+                    const now = new Date();
+                    picker.value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+                }
+                if(typeof renderMonthlyCalendar === 'function') {
+                    renderMonthlyCalendar();
+                }
+            }
+        };
 
         // 2. الدالة الرئيسية لرسم التقويم
   // الدالة الرئيسية لرسم التقويم (مقسمة)
@@ -1867,6 +1915,7 @@
     </script>
 </body>
 </html>
+
 
 
 
