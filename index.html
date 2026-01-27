@@ -1240,53 +1240,21 @@
 
         // --- Modals Logic with Limits ---
       // --- Modals Logic with Limits (تم تعديل منطق التعارض) ---
+    // --- Modals Logic with Limits (تم تعديل شرط الإضافي ليصبح تنبيهاً فقط) ---
         window.openActionModal = async (type, empDocId, currentBalance = 0) => {
             const modal = document.getElementById('actionModal');
             const title = document.getElementById('action-modal-title');
             const body = document.getElementById('action-modal-body');
             const saveBtn = document.getElementById('btn-action-save');
             
+            // إظهار زر الحفظ
             saveBtn.style.display = 'flex'; 
             saveBtn.innerHTML = 'تأكيد الطلب'; 
 
             modal.style.display = 'flex'; 
             body.innerHTML = '<div class="spinner" style="margin:20px auto;"></div>';
 
-            if (type === 'shift_change') {
-                title.innerText = "طلب تغيير وردية";
-                const shiftsOptions = shifts.map(s => `<option value="${s}">${s}</option>`).join('');
-                
-                body.innerHTML = `
-                    <div class="form-group">
-                        <label>تاريخ التغيير</label>
-                        <input type="date" id="act-date">
-                    </div>
-                    <div class="form-group">
-                        <label>الوردية المطلوبة</label>
-                        <select id="act-new-shift">
-                            <option value="" disabled selected>اختر الوردية...</option>
-                            ${shiftsOptions}
-                            <option value="عطلة">عطلة</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>السبب / ملاحظات</label>
-                        <input type="text" id="act-reason" placeholder="مثال: ظرف طارئ، تبديل مع زميل...">
-                    </div>
-                `;
-                saveBtn.onclick = () => {
-                    const date = document.getElementById('act-date').value;
-                    const newShift = document.getElementById('act-new-shift').value;
-                    if (!date || !newShift) return alert("يرجى ملء التاريخ والوردية");
-                    
-                    saveAction('shift_changes', empDocId, { 
-                        date: date, 
-                        newShift: newShift, 
-                        reason: document.getElementById('act-reason').value 
-                    });
-                };
-            }
-            else if (type === 'leave') {
+            if (type === 'leave') {
                 title.innerText = "طلب إجازة جديدة";
                 body.innerHTML = `
                     <div class="form-group">
@@ -1396,9 +1364,6 @@
                             }
                         });
 
-                        // --- التعديل هنا ---
-                        // يتم منع الإجازة فقط إذا وجد تعارض وكانت الإجازة "سنوية"
-                        // أما "الطارئة" و "المرضية" فتمر حتى لو وجد تعارض
                         if (conflictCount >= 1 && lType === 'سنوية') {
                             alert(`عذراً، لا يمكن تسجيل الإجازة السنوية يوم ${dateStr} (${dayName}).\nالسبب: تم استنفاد العدد المسموح (موظف واحد) لـ ${myGroupName}.`);
                             return;
@@ -1424,15 +1389,53 @@
                     saveAction('permissions', empDocId, { date: document.getElementById('act-date').value, hours: hrs });
                 };
             }
+            // --- التعديل هنا (Overtime) ---
             else if (type === 'overtime') {
                 title.innerText = "تسجيل عمل إضافي";
                 const usedOvertime = await calculateMonthlyUnits('overtime', empDocId);
-                body.innerHTML = `<div style="background:var(--bg-main); padding:15px; border-radius:12px; margin-bottom:15px; font-size:13px; border:1px solid var(--border-color);"><div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>المسجل (دورة 21):</span><span style="font-weight:bold; color:var(--success);">${usedOvertime} ساعة</span></div><div style="display:flex; justify-content:space-between;"><span>الحد الأقصى:</span><span style="font-weight:bold;">20 ساعة</span></div><div style="margin-top:8px; height:6px; background:#e0e0e0; border-radius:3px; overflow:hidden;"><div style="width:${Math.min((usedOvertime/20)*100, 100)}%; height:100%; background:var(--success);"></div></div></div><div class="form-group"><label>التاريخ</label><input type="date" id="act-date"></div><div class="form-group"><label>عدد الساعات</label><input type="number" id="act-hours" placeholder="مثال: 4"></div><div class="form-group"><label>السبب</label><select id="act-reason"><option>نقص إذن</option><option>نقص إجازة</option><option>ضغط عمل</option><option>أحوال جوية</option></select></div>`;
+                
+                // تحديد لون الشريط (أحمر إذا تجاوز)
+                const barColor = (usedOvertime >= 20) ? '#e74c3c' : 'var(--success)';
+                const barWidth = Math.min((usedOvertime/20)*100, 100);
+
+                body.innerHTML = `
+                    <div style="background:var(--bg-main); padding:15px; border-radius:12px; margin-bottom:15px; font-size:13px; border:1px solid var(--border-color);">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                            <span>المسجل (دورة 21):</span>
+                            <span style="font-weight:bold; color:${barColor};">${usedOvertime} ساعة</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between;">
+                            <span>الحد الأقصى:</span>
+                            <span style="font-weight:bold;">20 ساعة</span>
+                        </div>
+                        <div style="margin-top:8px; height:6px; background:#e0e0e0; border-radius:3px; overflow:hidden;">
+                            <div style="width:${barWidth}%; height:100%; background:${barColor};"></div>
+                        </div>
+                    </div>
+                    <div class="form-group"><label>التاريخ</label><input type="date" id="act-date"></div>
+                    <div class="form-group"><label>عدد الساعات</label><input type="number" id="act-hours" placeholder="مثال: 4"></div>
+                    <div class="form-group"><label>السبب</label><select id="act-reason"><option>نقص إذن</option><option>نقص إجازة</option><option>ضغط عمل</option><option>أحوال جوية</option></select></div>
+                `;
+                
                 saveBtn.onclick = () => {
                     const hrs = parseFloat(document.getElementById('act-hours').value);
                     if (!hrs || hrs <= 0) return alert("أدخل عدد ساعات صحيح");
-                    if (usedOvertime + hrs > 20) return alert(`عذراً، تجاوزت الحد الأقصى (20 ساعة). المتبقي: ${20 - usedOvertime}`);
-                    saveAction('overtime', empDocId, { date: document.getElementById('act-date').value, hours: hrs, reason: document.getElementById('act-reason').value });
+                    
+                    // التحقق من الحد الأقصى وإظهار رسالة تأكيد بدلاً من المنع
+                    if (usedOvertime + hrs > 20) {
+                        const confirmMsg = `تنبيه: سيتم تجاوز الحد الأقصى (20 ساعة).\n` +
+                                           `الإجمالي الحالي: ${usedOvertime}\n` +
+                                           `الإجمالي الجديد: ${usedOvertime + hrs}\n` +
+                                           `هل أنت متأكد من المتابعة؟`;
+                        
+                        if (!confirm(confirmMsg)) return; // إيقاف العملية إذا ضغط "إلغاء"
+                    }
+                    
+                    saveAction('overtime', empDocId, { 
+                        date: document.getElementById('act-date').value, 
+                        hours: hrs, 
+                        reason: document.getElementById('act-reason').value 
+                    });
                 };
             }
             else if (type === 'task') {
@@ -1775,5 +1778,6 @@
     </script>
 </body>
 </html>
+
 
 
