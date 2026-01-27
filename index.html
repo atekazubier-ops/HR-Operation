@@ -399,7 +399,7 @@
 <div id="view-calendar" class="hidden" style="grid-column: 1 / -1;">
     <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
-            <h3><i class="fas fa-calendar-alt" style="color: var(--primary);"></i> جدول الحضور والغياب الشهري</h3>
+            <h3><i class="fas fa-calendar-alt" style="color: var(--primary);"></i> التقويم الشهري (مقسم حسب التوقيت)</h3>
             <div style="display: flex; gap: 10px; align-items: center;">
                 <input type="month" id="cal-month-picker" style="padding: 10px; border-radius: 12px; border: 1px solid var(--border-color);">
                 <button onclick="renderMonthlyCalendar()" class="btn-main" style="padding: 10px 20px;"><i class="fas fa-sync"></i> عرض</button>
@@ -414,9 +414,18 @@
             <div style="display:flex; align-items:center; gap:5px;"><span style="width:15px; height:15px; background:#95a5a6; border-radius:4px;"></span> عطلة أسبوعية</div>
         </div>
 
-        <div class="table-container-scroll">
-            <table class="calendar-grid-table" id="calendar-table">
-                </table>
+        <h4 style="color: var(--primary); margin-top: 20px; border-bottom: 2px solid var(--bg-main); padding-bottom: 10px;">
+            <i class="fas fa-sun"></i> الفترة الصباحية (8-3 / 9-4)
+        </h4>
+        <div class="table-container-scroll" style="margin-bottom: 30px; max-height: 50vh;">
+            <table class="calendar-grid-table" id="calendar-table-morning"></table>
+        </div>
+
+        <h4 style="color: var(--secondary); margin-top: 20px; border-bottom: 2px solid var(--bg-main); padding-bottom: 10px;">
+            <i class="fas fa-moon"></i> الفترة المسائية (12-7 / 4-11 / 7-2)
+        </h4>
+        <div class="table-container-scroll" style="max-height: 50vh;">
+            <table class="calendar-grid-table" id="calendar-table-evening"></table>
         </div>
     </div>
 </div>
@@ -1748,121 +1757,146 @@
         };
 
         // 2. الدالة الرئيسية لرسم التقويم
+  // الدالة الرئيسية لرسم التقويم (مقسمة)
         window.renderMonthlyCalendar = async () => {
             const picker = document.getElementById('cal-month-picker');
             if (!picker.value) return;
 
             const [year, month] = picker.value.split('-').map(Number);
             const daysInMonth = new Date(year, month, 0).getDate();
-            const table = document.getElementById('calendar-table');
-            
-            // بناء رأس الجدول (التواريخ)
-            let headerHTML = '<thead><tr><th style="height:50px;">الموظف</th>';
-            for (let i = 1; i <= daysInMonth; i++) {
-                const date = new Date(year, month - 1, i);
-                const dayName = days[date.getDay()]; // اسم اليوم بالعربي من المصفوفة الموجودة لديك
-                const shortDay = dayName.split(' ')[0]; // اختصار
-                
-                // تمييز الجمعة والسبت في الرأس
-                const isWeekend = (date.getDay() === 5 || date.getDay() === 6); // 5=الجمعة, 6=السبت
-                const color = isWeekend ? 'color:#e74c3c;' : '';
-                
-                headerHTML += `<th style="min-width: 40px; ${color}">
-                    <div style="font-size:14px;">${i}</div>
-                    <div style="font-size:9px; opacity:0.7;">${shortDay}</div>
-                </th>`;
-            }
-            headerHTML += '</tr></thead>';
 
-            // بناء جسم الجدول (الموظفين)
-            let bodyHTML = '<tbody>';
-            
-            // ترتيب الموظفين (نفس منطق الصفحة الرئيسية)
-            const sortedEmployees = [...allEmployees].sort((a, b) => {
-                const idA = a.empId || "";
-                const idB = b.empId || "";
-                return idA.localeCompare(idB, undefined, { numeric: true, sensitivity: 'base' });
+            // 1. تعريف المجموعات
+            const morningShifts = ["08:00 - 15:00", "09:00 - 16:00"];
+            const eveningShifts = ["12:00 - 19:00", "16:00 - 23:00", "19:00 - 02:00"];
+
+            // 2. فرز الموظفين
+            const morningEmployees = [];
+            const eveningEmployees = [];
+
+            allEmployees.forEach(emp => {
+                // نتحقق من جدول الموظف لتحديد مجموعته
+                let isMorning = false;
+                let isEvening = false;
+
+                if (emp.schedule) {
+                    const shifts = Object.values(emp.schedule);
+                    // هل لديه أي شفت صباحي؟
+                    if (shifts.some(s => morningShifts.includes(s))) isMorning = true;
+                    // هل لديه أي شفت مسائي؟
+                    if (shifts.some(s => eveningShifts.includes(s))) isEvening = true;
+                }
+
+                // منطق التصنيف (الأولوية للصباحي إذا كان مختلط، أو يمكن وضعه في الاثنين)
+                // هنا سنضعه في المجموعة التي يداوم فيها غالباً، أو الافتراضي مسائي
+                if (isMorning) {
+                    morningEmployees.push(emp);
+                } else {
+                    eveningEmployees.push(emp); // يشمل المسائي ومن ليس لديه جدول محدد
+                }
             });
 
-            for (const emp of sortedEmployees) {
-                // عرض أول اسمين فقط لتوفير المساحة
-                const displayName = emp.name.split(' ').slice(0, 2).join(' ');
-                
-                bodyHTML += `<tr><td>
-                    <div style="font-weight:bold;">${displayName}</div>
-                    <div style="font-size:10px; color:var(--text-muted);">${emp.empId || ''}</div>
-                </td>`;
+            // 3. دالة مساعدة لرسم جدول واحد (لتجنب تكرار الكود)
+            const drawTableSection = (tableId, employeesList) => {
+                const table = document.getElementById(tableId);
+                if (!table) return;
 
+                // رأس الجدول
+                let headerHTML = '<thead><tr><th style="height:50px;">الموظف</th>';
                 for (let i = 1; i <= daysInMonth; i++) {
-                    const currentDate = new Date(year, month - 1, i);
-                    const dateStr = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD (قد يحتاج لضبط المنطقة الزمنية كما فعلنا سابقاً)
+                    const date = new Date(year, month - 1, i);
+                    const dayName = days[date.getDay()];
+                    const shortDay = dayName.split(' ')[0];
+                    const isWeekend = (date.getDay() === 5 || date.getDay() === 6);
+                    const color = isWeekend ? 'color:#e74c3c;' : '';
                     
-                    // تصحيح التوقيت للمقارنة (تجنب مشاكل المنطقة الزمنية)
-                    const checkDate = new Date(year, month - 1, i);
-                    checkDate.setHours(0,0,0,0);
-
-                    let cellContent = '';
-                    let cellClass = '';
-
-                    // 1. التحقق من العطلة الأسبوعية حسب جدول الموظف
-                    const dayIndex = checkDate.getDay();
-                    const dayNameArabic = days[dayIndex];
-                    if (emp.schedule && emp.schedule[dayNameArabic] === 'عطلة') {
-                        cellClass = 'cell-weekend';
-                        cellContent = ''; // أو نكتب 'ع'
-                    }
-
-                    // 2. البحث عن إجازة
-                    if (allLeavesGlobal) {
-                        const leave = allLeavesGlobal.find(l => {
-                            const startDate = new Date(l.date);
-                            startDate.setHours(0,0,0,0);
-                            const duration = parseFloat(l.daysCount || 1);
-                            const endDate = new Date(startDate);
-                            endDate.setDate(endDate.getDate() + (duration - 1));
-                            endDate.setHours(23,59,59,999);
-                            
-                            return checkDate >= startDate && checkDate <= endDate && l.empDocId === emp.id;
-                        });
-
-                        if (leave) {
-                            if (leave.type === 'سنوية') { cellClass = 'cell-vacation'; cellContent = 'S'; }
-                            else if (leave.type === 'طارئة') { cellClass = 'cell-emergency'; cellContent = 'E'; }
-                            else if (leave.type === 'مرضية') { cellClass = 'cell-sick'; cellContent = 'M'; }
-                        }
-                    }
-
-                    // 3. البحث عن إذن (يظهر فوق العطلة لكن لا يخفي الإجازة)
-                   if (!cellContent && typeof allPermissionsGlobal !== 'undefined') {
-                        // تحويل التاريخ لنص للمقارنة (تأكد من توافق الصيغة مع قاعدة البيانات)
-                        const y = checkDate.getFullYear();
-                        const m = String(checkDate.getMonth() + 1).padStart(2, '0');
-                        const d = String(checkDate.getDate()).padStart(2, '0');
-                        const dateStrComp = `${y}-${m}-${d}`;
-
-                        const perm = allPermissionsGlobal.find(p => p.empDocId === emp.id && p.date === dateStrComp);
-                        if (perm) {
-                            cellClass = 'cell-permission';
-                            cellContent = `${perm.hours}`; // عرض عدد الساعات
-                        }
-                    }
-                    // للأداء الأفضل، سنقوم بجلب أذونات الشهر مرة واحدة، لكن للتبسيط سنستخدم الفلترة هنا.
-                    // ملاحظة: `allLeavesGlobal` موجودة، لكن الأذونات ليست global في الكود الأصلي.
-                    // *لحل هذا*: يجب إضافة `allPermissionsGlobal` في `startListening` مثل الإجازات.
-                    
-                    // (راجع الملاحظة أسفل الكود بخصوص الأذونات)
-
-                    bodyHTML += `<td class="${cellClass}" title="${dateStr}">${cellContent}</td>`;
+                    headerHTML += `<th style="min-width: 40px; ${color}">
+                        <div style="font-size:14px;">${i}</div>
+                        <div style="font-size:9px; opacity:0.7;">${shortDay}</div>
+                    </th>`;
                 }
-                bodyHTML += '</tr>';
-            }
-            bodyHTML += '</tbody>';
+                headerHTML += '</tr></thead>';
 
-            table.innerHTML = headerHTML + bodyHTML;
+                // جسم الجدول
+                let bodyHTML = '<tbody>';
+                
+                // ترتيب
+                employeesList.sort((a, b) => {
+                    const idA = a.empId || "";
+                    const idB = b.empId || "";
+                    return idA.localeCompare(idB, undefined, { numeric: true, sensitivity: 'base' });
+                });
+
+                if (employeesList.length === 0) {
+                    bodyHTML += `<tr><td colspan="${daysInMonth + 1}" style="text-align:center; padding:20px;">لا يوجد موظفين في هذه الفترة</td></tr>`;
+                } else {
+                    for (const emp of employeesList) {
+                        const displayName = emp.name.split(' ').slice(0, 2).join(' ');
+                        bodyHTML += `<tr><td>
+                            <div style="font-weight:bold;">${displayName}</div>
+                            <div style="font-size:10px; color:var(--text-muted);">${emp.empId || ''}</div>
+                        </td>`;
+
+                        for (let i = 1; i <= daysInMonth; i++) {
+                            const checkDate = new Date(year, month - 1, i);
+                            checkDate.setHours(0,0,0,0);
+                            const dateStr = checkDate.toISOString().split('T')[0]; // للتلميح
+
+                            let cellContent = '';
+                            let cellClass = '';
+
+                            // أ. العطلة الأسبوعية
+                            const dayIndex = checkDate.getDay();
+                            const dayNameArabic = days[dayIndex];
+                            if (emp.schedule && emp.schedule[dayNameArabic] === 'عطلة') {
+                                cellClass = 'cell-weekend';
+                            }
+
+                            // ب. الإجازات
+                            if (typeof allLeavesGlobal !== 'undefined') {
+                                const leave = allLeavesGlobal.find(l => {
+                                    const startDate = new Date(l.date); startDate.setHours(0,0,0,0);
+                                    const duration = parseFloat(l.daysCount || 1);
+                                    const endDate = new Date(startDate); endDate.setDate(endDate.getDate() + (duration - 1)); endDate.setHours(23,59,59,999);
+                                    return checkDate >= startDate && checkDate <= endDate && l.empDocId === emp.id;
+                                });
+                                if (leave) {
+                                    if (leave.type === 'سنوية') { cellClass = 'cell-vacation'; cellContent = 'S'; }
+                                    else if (leave.type === 'طارئة') { cellClass = 'cell-emergency'; cellContent = 'E'; }
+                                    else if (leave.type === 'مرضية') { cellClass = 'cell-sick'; cellContent = 'M'; }
+                                }
+                            }
+
+                            // ج. الأذونات
+                            if (!cellContent && typeof allPermissionsGlobal !== 'undefined') {
+                                const y = checkDate.getFullYear();
+                                const m = String(checkDate.getMonth() + 1).padStart(2, '0');
+                                const d = String(checkDate.getDate()).padStart(2, '0');
+                                const dateStrComp = `${y}-${m}-${d}`;
+                                
+                                const perm = allPermissionsGlobal.find(p => p.empDocId === emp.id && p.date === dateStrComp);
+                                if (perm) {
+                                    cellClass = 'cell-permission';
+                                    cellContent = perm.hours;
+                                }
+                            }
+
+                            bodyHTML += `<td class="${cellClass}" title="${dateStr}">${cellContent}</td>`;
+                        }
+                        bodyHTML += '</tr>';
+                    }
+                }
+                bodyHTML += '</tbody>';
+                table.innerHTML = headerHTML + bodyHTML;
+            };
+
+            // 4. استدعاء الرسم للجدولين
+            drawTableSection('calendar-table-morning', morningEmployees);
+            drawTableSection('calendar-table-evening', eveningEmployees);
         };
     </script>
 </body>
 </html>
+
 
 
 
