@@ -570,6 +570,7 @@
         let allLeavesGlobal = []; 
         let unsubscribeSnapshot = null;
         let unsubscribeLeaves = null;
+        let unsubscribePermissions = null;
 
         onAuthStateChanged(auth, (user) => {
             const loadingScreen = document.getElementById('loading-screen');
@@ -647,6 +648,29 @@
                 allLeavesGlobal = [];
                 snap.forEach(docSnap => allLeavesGlobal.push(docSnap.data()));
                 updateWeeklyLeavesTable();
+                updateDashboardStats();
+            });
+            const permsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'permissions');
+            unsubscribePermissions = onSnapshot(query(permsColRef), (snap) => {
+                const now = new Date();
+                // توحيد صيغة التاريخ (YYYY-MM-DD) لمطابقة قاعدة البيانات
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const todayStr = `${year}-${month}-${day}`;
+
+                let count = 0;
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    // نتحقق من أن تاريخ الإذن يطابق تاريخ اليوم
+                    if (data.date === todayStr) {
+                        count++;
+                    }
+                });
+
+                // تحديث العداد في الصفحة
+                const el = document.getElementById('today-permissions');
+                if (el) el.innerText = count;
             });
         }
 
@@ -767,34 +791,69 @@
 
         window.filterEmployees = () => updateUI();
 
-        async function updateDashboardStats() {
+     async function updateDashboardStats() {
             const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const todayStr = `${year}-${month}-${day}`;
-            try {
-                const leavesRef = collection(db, 'artifacts', appId, 'public', 'data', 'leaves');
-                const leavesSnap = await getDocs(query(leavesRef, where('date', '==', todayStr)));
-                const leavesEl = document.getElementById('today-leaves');
-                if (leavesEl) leavesEl.innerText = leavesSnap.size;
+            now.setHours(0, 0, 0, 0); // توحيد الوقت للمقارنة الصحيحة
 
-                const permsRef = collection(db, 'artifacts', appId, 'public', 'data', 'permissions');
-                const permsSnap = await getDocs(query(permsRef, where('date', '==', todayStr)));
-                const permsEl = document.getElementById('today-permissions');
-                if (permsEl) permsEl.innerText = permsSnap.size;
+            // --- 1. حساب طلبات الإجازة (المنطق المصحح) ---
+            // نستخدم allLeavesGlobal المحملة مسبقاً لحساب الإجازات السارية اليوم
+            let activeLeavesCount = 0;
+            
+            if (typeof allLeavesGlobal !== 'undefined') {
+                activeLeavesCount = allLeavesGlobal.filter(leave => {
+                    // تحويل تاريخ بداية الإجازة
+                    const startDate = new Date(leave.date);
+                    startDate.setHours(0, 0, 0, 0);
 
-                const currentDayIndex = now.getDay(); 
-                const arabicDay = days[currentDayIndex];
-                let onlineCount = 0;
-                allEmployees.forEach(emp => {
-                    if (emp.schedule && emp.schedule[arabicDay] && emp.schedule[arabicDay] !== 'عطلة') {
-                        onlineCount++;
+                    // حساب تاريخ نهاية الإجازة
+                    const duration = parseFloat(leave.daysCount || 1);
+                    const endDate = new Date(startDate);
+                    endDate.setDate(endDate.getDate() + (duration - 1));
+
+                    // الشرط: هل تاريخ اليوم يقع بين البداية والنهاية؟
+                    return now >= startDate && now <= endDate;
+                }).length;
+            }
+
+            const leavesEl = document.getElementById('today-leaves');
+            if (leavesEl) leavesEl.innerText = activeLeavesCount;
+
+
+            // --- 3. حساب المتواجدين الآن ---
+            // (تم تحديث هذا الجزء ليعتمد على الحساب الصحيح للإجازات أعلاه)
+            
+            // تحديد قائمة الموظفين المجازين "اليوم" بناءً على الحساب الصحيح
+            const absentEmpIds = new Set();
+            if (typeof allLeavesGlobal !== 'undefined') {
+                allLeavesGlobal.forEach(leave => {
+                    const startDate = new Date(leave.date);
+                    startDate.setHours(0,0,0,0);
+                    const duration = parseFloat(leave.daysCount || 1);
+                    const endDate = new Date(startDate);
+                    endDate.setDate(endDate.getDate() + (duration - 1));
+
+                    if (now >= startDate && now <= endDate) {
+                        absentEmpIds.add(leave.empDocId);
                     }
                 });
-                const onlineEl = document.getElementById('online-count');
-                if (onlineEl) onlineEl.innerText = onlineCount;
-            } catch (error) { console.error("Stats Error:", error); }
+            }
+
+            const currentDayIndex = now.getDay(); 
+            const arabicDay = days[currentDayIndex];
+            let onlineCount = 0;
+
+            allEmployees.forEach(emp => {
+                if (emp.schedule && 
+                    emp.schedule[arabicDay] && 
+                    emp.schedule[arabicDay] !== 'عطلة' && 
+                    !absentEmpIds.has(emp.id)) { // التحقق من أن الموظف ليس في القائمة الصحيحة للمجازين
+                    
+                    onlineCount++;
+                }
+            });
+
+            const onlineEl = document.getElementById('online-count');
+            if (onlineEl) onlineEl.innerText = onlineCount;
         }
 
         function updateBirthdayList() {
@@ -1424,6 +1483,8 @@
             document.body.removeChild(link);
         };
         // دالة جديدة لعرض تفاصيل طلبات اليوم في نافذة منبثقة
+     // دالة عرض التفاصيل المصححة
+       // دالة عرض التفاصيل (النسخة النهائية والمصححة)
         window.showTodayDetails = async (collectionName, title) => {
             const modal = document.getElementById('actionModal');
             const modalTitle = document.getElementById('action-modal-title');
@@ -1432,21 +1493,56 @@
 
             // إعداد النافذة
             modalTitle.innerText = title;
-            btnSave.style.display = 'none'; // إخفاء زر الحفظ لأننا نعرض بيانات فقط
+            btnSave.style.display = 'none'; 
             modalBody.innerHTML = '<div class="spinner" style="margin:20px auto;"></div>';
             modal.style.display = 'flex';
 
             try {
-                // تحديد تاريخ اليوم
-                const now = new Date();
-                const todayStr = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+                // 1. إعداد تاريخ اليوم (محلياً) وتصفير الوقت تماماً
+                const checkDate = new Date();
+                checkDate.setHours(0, 0, 0, 0);
 
-                // جلب البيانات من قاعدة البيانات
-                const colRef = collection(db, 'artifacts', appId, 'public', 'data', collectionName);
-                const q = query(colRef, where('date', '==', todayStr));
-                const snap = await getDocs(q);
+                // 2. إعداد النص (String) الخاص بتاريخ اليوم للبحث في قاعدة البيانات
+                // نستخدم هذه الطريقة اليدوية لضمان عدم تأثر التاريخ بفارق التوقيت العالمي (UTC)
+                const year = checkDate.getFullYear();
+                const month = String(checkDate.getMonth() + 1).padStart(2, '0');
+                const day = String(checkDate.getDate()).padStart(2, '0');
+                const todayStr = `${year}-${month}-${day}`; 
+                
+                let itemsToShow = [];
 
-                if (snap.empty) {
+                // --- أ. حالة الإجازات (تعتمد على النطاق الزمني) ---
+                if (collectionName === 'leaves') {
+                    if (typeof allLeavesGlobal !== 'undefined') {
+                        itemsToShow = allLeavesGlobal.filter(leave => {
+                            // تحويل تاريخ بداية الإجازة
+                            const startDate = new Date(leave.date);
+                            // هام جداً: تصفير وقت البداية لضمان المقارنة العادلة مع تاريخ اليوم
+                            startDate.setHours(0, 0, 0, 0);
+
+                            // حساب تاريخ النهاية
+                            const duration = parseFloat(leave.daysCount || 1);
+                            const endDate = new Date(startDate);
+                            endDate.setDate(endDate.getDate() + (duration - 1));
+                            // جعل وقت النهاية آخر لحظة في اليوم
+                            endDate.setHours(23, 59, 59, 999);
+
+                            // المقارنة: هل "اليوم" يقع بين البداية والنهاية؟
+                            return checkDate >= startDate && checkDate <= endDate;
+                        });
+                    }
+                } 
+                // --- ب. حالة الأذونات (تعتمد على تطابق النص todayStr) ---
+                else {
+                    const colRef = collection(db, 'artifacts', appId, 'public', 'data', collectionName);
+                    // استخدام todayStr المحلي الذي قمنا بحسابه بالأعلى
+                    const q = query(colRef, where('date', '==', todayStr));
+                    const snap = await getDocs(q);
+                    snap.forEach(doc => itemsToShow.push(doc.data()));
+                }
+
+                // --- عرض النتائج ---
+                if (itemsToShow.length === 0) {
                     modalBody.innerHTML = `
                         <div style="text-align:center; padding:30px;">
                             <i class="far fa-smile" style="font-size:40px; color:#ddd; margin-bottom:15px;"></i>
@@ -1455,14 +1551,22 @@
                     return;
                 }
 
-                // بناء القائمة
                 let listHtml = '<div style="display:flex; flex-direction:column; gap:10px;">';
                 
-                snap.forEach(doc => {
-                    const data = doc.data();
+                itemsToShow.forEach(data => {
                     const emp = allEmployees.find(e => e.id === data.empDocId);
-                    const empName = emp ? emp.name : 'موظف غير معروف';
-                    const detail = data.hours ? `${data.hours} ساعات` : (data.type || '---');
+                    const empName = emp ? emp.name : 'موظف محذوف';
+                    
+                    let detail = "";
+                    if (data.hours) {
+                        detail = `${data.hours} ساعات`; // للأذونات
+                    } else {
+                        // للإجازات
+                        const endDate = new Date(data.date);
+                        endDate.setDate(endDate.getDate() + (parseFloat(data.daysCount || 1) - 1));
+                        const endStr = endDate.toISOString().split('T')[0];
+                        detail = `${data.type} (حتى ${endStr})`;
+                    }
                     
                     listHtml += `
                         <div style="background:var(--bg-main); padding:12px; border-radius:12px; display:flex; justify-content:space-between; align-items:center;">
@@ -1475,7 +1579,7 @@
                                     <div style="font-size:11px; color:var(--text-muted);">${detail}</div>
                                 </div>
                             </div>
-                            <span class="status-badge" style="background:#e3f2fd; color:#2196f3;">جديد</span>
+                            <span class="status-badge" style="background:#e3f2fd; color:#2196f3;">نشط</span>
                         </div>
                     `;
                 });
@@ -1498,6 +1602,13 @@
     </script>
 </body>
 </html>
+
+
+
+
+
+
+
 
 
 
