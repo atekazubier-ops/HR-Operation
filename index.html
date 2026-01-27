@@ -843,6 +843,111 @@
             rowHtml += '</tr>';
             tbody.innerHTML = rowHtml;
         }
+        // دالة عرض التفاصيل (نسخة سريعة تعتمد على البيانات المحلية)
+        window.showTodayDetails = async (collectionName, title) => {
+            const modal = document.getElementById('actionModal');
+            const modalTitle = document.getElementById('action-modal-title');
+            const modalBody = document.getElementById('action-modal-body');
+            const btnSave = document.getElementById('btn-action-save');
+
+            // إعداد النافذة
+            modalTitle.innerText = title;
+            btnSave.style.display = 'none'; 
+            modalBody.innerHTML = '<div class="spinner" style="margin:20px auto;"></div>';
+            modal.style.display = 'flex';
+
+            // محاكاة تأخير بسيط جداً لجمالية العرض (اختياري)
+            await new Promise(r => setTimeout(r, 100));
+
+            try {
+                // 1. حساب التاريخ المحلي
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const todayStr = `${year}-${month}-${day}`; 
+                
+                // لتصفية الإجازات (تصفير الوقت)
+                const checkDate = new Date();
+                checkDate.setHours(0, 0, 0, 0);
+
+                let itemsToShow = [];
+
+                // --- الحالة 1: عرض تفاصيل الإجازات ---
+                if (collectionName === 'leaves') {
+                    if (typeof allLeavesGlobal !== 'undefined') {
+                        itemsToShow = allLeavesGlobal.filter(leave => {
+                            const startDate = new Date(leave.date);
+                            startDate.setHours(0, 0, 0, 0);
+
+                            const duration = parseFloat(leave.daysCount || 1);
+                            const endDate = new Date(startDate);
+                            endDate.setDate(endDate.getDate() + (duration - 1));
+                            endDate.setHours(23, 59, 59, 999);
+
+                            return checkDate >= startDate && checkDate <= endDate;
+                        });
+                    }
+                } 
+                // --- الحالة 2: عرض تفاصيل الأذونات ---
+                else if (collectionName === 'permissions') {
+                    // نستخدم المصفوفة العامة بدلاً من الاتصال بقاعدة البيانات
+                    if (typeof allPermissionsGlobal !== 'undefined') {
+                        itemsToShow = allPermissionsGlobal.filter(p => p.date === todayStr);
+                    }
+                }
+
+                // --- عرض النتائج ---
+                if (itemsToShow.length === 0) {
+                    modalBody.innerHTML = `
+                        <div style="text-align:center; padding:30px;">
+                            <i class="far fa-smile" style="font-size:40px; color:#ddd; margin-bottom:15px;"></i>
+                            <p style="color:var(--text-muted);">لا توجد طلبات مسجلة لهذا اليوم</p>
+                        </div>`;
+                    return;
+                }
+
+                let listHtml = '<div style="display:flex; flex-direction:column; gap:10px;">';
+                
+                itemsToShow.forEach(data => {
+                    const emp = allEmployees.find(e => e.id === data.empDocId);
+                    const empName = emp ? emp.name : 'موظف محذوف';
+                    
+                    let detail = "";
+                    if (data.hours) {
+                        detail = `${data.hours} ساعات`; // للأذونات
+                    } else {
+                        // للإجازات
+                        const endDate = new Date(data.date);
+                        endDate.setDate(endDate.getDate() + (parseFloat(data.daysCount || 1) - 1));
+                        const endStr = endDate.toISOString().split('T')[0];
+                        detail = `${data.type} (حتى ${endStr})`;
+                    }
+                    
+                    listHtml += `
+                        <div style="background:var(--bg-main); padding:12px; border-radius:12px; display:flex; justify-content:space-between; align-items:center;">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <div style="width:35px; height:35px; background:white; border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:bold; color:var(--primary);">
+                                    ${empName.charAt(0)}
+                                </div>
+                                <div>
+                                    <div style="font-weight:bold; font-size:13px;">${empName}</div>
+                                    <div style="font-size:11px; color:var(--text-muted);">${detail}</div>
+                                </div>
+                            </div>
+                            <span class="status-badge" style="background:#e3f2fd; color:#2196f3;">نشط</span>
+                        </div>
+                    `;
+                });
+                
+                listHtml += '</div>';
+                modalBody.innerHTML = listHtml;
+
+            } catch (error) {
+                console.error(error);
+                modalBody.innerHTML = '<p style="color:red; text-align:center;">حدث خطأ أثناء عرض البيانات</p>';
+            }
+        };
         // --- Core UI Updates ---
      function updateUI() {
             const tableBody = document.getElementById('employeesTableBody');
@@ -1634,3 +1739,4 @@
     </script>
 </body>
 </html>
+
