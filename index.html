@@ -1239,14 +1239,54 @@
         };
 
         // --- Modals Logic with Limits ---
+      // --- Modals Logic with Limits (تم تعديل منطق التعارض) ---
         window.openActionModal = async (type, empDocId, currentBalance = 0) => {
             const modal = document.getElementById('actionModal');
             const title = document.getElementById('action-modal-title');
             const body = document.getElementById('action-modal-body');
             const saveBtn = document.getElementById('btn-action-save');
-            modal.style.display = 'flex'; body.innerHTML = '<div class="spinner" style="margin:20px auto;"></div>';
+            
+            saveBtn.style.display = 'flex'; 
+            saveBtn.innerHTML = 'تأكيد الطلب'; 
 
-            if (type === 'leave') {
+            modal.style.display = 'flex'; 
+            body.innerHTML = '<div class="spinner" style="margin:20px auto;"></div>';
+
+            if (type === 'shift_change') {
+                title.innerText = "طلب تغيير وردية";
+                const shiftsOptions = shifts.map(s => `<option value="${s}">${s}</option>`).join('');
+                
+                body.innerHTML = `
+                    <div class="form-group">
+                        <label>تاريخ التغيير</label>
+                        <input type="date" id="act-date">
+                    </div>
+                    <div class="form-group">
+                        <label>الوردية المطلوبة</label>
+                        <select id="act-new-shift">
+                            <option value="" disabled selected>اختر الوردية...</option>
+                            ${shiftsOptions}
+                            <option value="عطلة">عطلة</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>السبب / ملاحظات</label>
+                        <input type="text" id="act-reason" placeholder="مثال: ظرف طارئ، تبديل مع زميل...">
+                    </div>
+                `;
+                saveBtn.onclick = () => {
+                    const date = document.getElementById('act-date').value;
+                    const newShift = document.getElementById('act-new-shift').value;
+                    if (!date || !newShift) return alert("يرجى ملء التاريخ والوردية");
+                    
+                    saveAction('shift_changes', empDocId, { 
+                        date: date, 
+                        newShift: newShift, 
+                        reason: document.getElementById('act-reason').value 
+                    });
+                };
+            }
+            else if (type === 'leave') {
                 title.innerText = "طلب إجازة جديدة";
                 body.innerHTML = `
                     <div class="form-group">
@@ -1274,7 +1314,6 @@
                     <div class="form-group"><label>التفاصيل</label><textarea id="act-note" rows="3" placeholder="أدخل تفاصيل الإجازة..."></textarea></div>
                 `;
 
-                // دالة صغيرة لحساب الأيام تلقائياً عند تغيير التاريخ
                 window.calculateDays = () => {
                     const d1 = document.getElementById('act-date-from').value;
                     const d2 = document.getElementById('act-date-to').value;
@@ -1301,21 +1340,17 @@
                     const dateFrom = document.getElementById('act-date-from').value;
                     const dateTo = document.getElementById('act-date-to').value;
                     
-                    // التحقق من التواريخ
                     if (!dateFrom || !dateTo) return alert("يرجى تحديد تاريخ البداية والنهاية");
                     if (new Date(dateTo) < new Date(dateFrom)) return alert("تاريخ النهاية لا يمكن أن يكون قبل البداية");
 
-                    // حساب عدد الأيام الفعلي للحفظ
                     const diffTime = Math.abs(new Date(dateTo) - new Date(dateFrom));
                     const lDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
-                    // التحقق من الرصيد
                     if ((lType === 'سنوية' || lType === 'طارئة') && lDays > currentBalance) {
                         alert(`عذراً، الرصيد غير كافٍ. المتاح: ${currentBalance} يوم`);
                         return;
                     }
 
-                    // التحقق من التعارض (نفس المنطق القديم مع تعديل بسيط)
                     const allLeavesSnap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'leaves'));
                     const morningShifts = ["08:00 - 15:00", "09:00 - 16:00"]; 
 
@@ -1361,14 +1396,15 @@
                             }
                         });
 
-                        if (conflictCount >= 1) {
-                            alert(`عذراً، لا يمكن تسجيل الإجازة يوم ${dateStr} (${dayName}).\nالسبب: تم استنفاد العدد المسموح (موظف واحد) لـ ${myGroupName}.`);
+                        // --- التعديل هنا ---
+                        // يتم منع الإجازة فقط إذا وجد تعارض وكانت الإجازة "سنوية"
+                        // أما "الطارئة" و "المرضية" فتمر حتى لو وجد تعارض
+                        if (conflictCount >= 1 && lType === 'سنوية') {
+                            alert(`عذراً، لا يمكن تسجيل الإجازة السنوية يوم ${dateStr} (${dayName}).\nالسبب: تم استنفاد العدد المسموح (موظف واحد) لـ ${myGroupName}.`);
                             return;
                         }
                     }
 
-                    // الحفظ في قاعدة البيانات
-                    // نحفظ تاريخ البداية (date) وعدد الأيام (daysCount) كما هو مطلوب في الهيكلة القديمة
                     await saveAction('leaves', empDocId, { 
                         type: lType,
                         date: dateFrom,
@@ -1739,4 +1775,5 @@
     </script>
 </body>
 </html>
+
 
