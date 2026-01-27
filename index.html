@@ -1713,26 +1713,9 @@
              document.getElementById('btn-action-save').style.display = 'flex';
              oldCloseActionModal();
         };
-        // 1. تحديث دالة التنقل لإضافة الصفحة الجديدة
+        // 1. 2تحديث دالة التنقل لإضافة الصفحة الجديدة
         const originalShowView = window.showView;
-        window.showView = (v) => {
-            // إخفاء جميع الصفحات بما فيها التقويم
-            ['home', 'employees', 'profile', 'overtime', 'calendar'].forEach(view => { 
-                const el = document.getElementById(`view-${view}`); 
-                if (el) el.className = (v === view ? '' : 'hidden'); 
-            });
-            
-            // تحديث الشريط الجانبي
-            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            const activeNav = document.getElementById(`link-${v === 'profile' ? 'employees' : v}`); 
-            if(activeNav) activeNav.classList.add('active');
-            
-            // التعامل مع العرض الكامل
-            const containerEl = document.getElementById('content-container'); 
-            if (containerEl) {
-                containerEl.className = (v === 'home' ? 'content-area' : 'content-area full-width');
-            }
-
+      
             // إذا تم فتح التقويم، قم بتحميله
             if (v === 'calendar') {
                 const picker = document.getElementById('cal-month-picker');
@@ -1884,6 +1867,7 @@
     </script>
 </body>
 </html>
+
 
 
 
