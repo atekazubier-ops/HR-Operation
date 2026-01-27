@@ -1451,6 +1451,14 @@
         };
 
         window.closeActionModal = () => document.getElementById('actionModal').style.display = 'none';
+        function showToast(msg) { 
+            const t = document.getElementById('toast'); 
+            if (t) { 
+                t.innerText = msg; 
+                t.style.display = 'block'; 
+                setTimeout(() => t.style.display = 'none', 3000); 
+            } 
+        }
 
         // --- CRUD Operations (Add/Edit/Delete) ---
         async function saveAction(collectionName, empDocId, data) {
@@ -1778,6 +1786,7 @@
     </script>
 </body>
 </html>
+
 
 
 
