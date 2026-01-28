@@ -13,20 +13,38 @@
     
     <style>
         :root {
-            --primary: #ff6b4a; --primary-light: #ff8e75; --primary-dark: #e85a3a;
-            --secondary: #2d3436; --bg-main: #f0f2f5; --bg-card: #ffffff;
-            --text-main: #2d3436; --text-muted: #636e72;
-            --shadow-sm: 0 2px 10px rgba(0,0,0,0.05); --shadow-md: 0 10px 30px rgba(0,0,0,0.08);
-            --sidebar-bg: #1e272e; --border-color: rgba(0,0,0,0.05); --modal-bg: rgba(0, 0, 0, 0.4);
-            --success: #27ae60; --info: #3498db; --warning: #f1c40f; --danger: #e74c3c;
+            --primary: #ff6b4a;
+            --primary-light: #ff8e75;
+            --primary-dark: #e85a3a;
+            --secondary: #2d3436;
+            --bg-main: #f0f2f5;
+            --bg-card: #ffffff;
+            --text-main: #2d3436;
+            --text-muted: #636e72;
+            --shadow-sm: 0 2px 10px rgba(0,0,0,0.05);
+            --shadow-md: 0 10px 30px rgba(0,0,0,0.08);
+            --sidebar-bg: #1e272e;
+            --border-color: rgba(0,0,0,0.05);
+            --modal-bg: rgba(0, 0, 0, 0.4);
+            --success: #27ae60;
+            --info: #3498db;
+            --warning: #f1c40f;
+            --danger: #e74c3c;
         }
+
         [data-theme="dark"] {
-            --bg-main: #0f1113; --bg-card: #1a1c1e; --text-main: #e0e0e0; --text-muted: #a0a0a0;
-            --sidebar-bg: #050505; --border-color: rgba(255,255,255,0.08);
+            --bg-main: #0f1113;
+            --bg-card: #1a1c1e;
+            --text-main: #e0e0e0;
+            --text-muted: #a0a0a0;
+            --sidebar-bg: #050505;
+            --border-color: rgba(255,255,255,0.08);
         }
+
         * { box-sizing: border-box; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
         body { font-family: 'El Messiri', sans-serif; background-color: var(--bg-main); color: var(--text-main); margin: 0; display: flex; height: 100vh; overflow: hidden; }
 
+        /* --- Login --- */
         #login-view { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-main); z-index: 5000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
         .login-card { background: var(--bg-card); padding: 40px; border-radius: 30px; box-shadow: var(--shadow-md); width: 90%; max-width: 400px; text-align: center; border: 1px solid var(--border-color); }
         .login-logo { width: 150px; margin-bottom: 20px; }
@@ -35,6 +53,7 @@
         .login-btn { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 15px; font-weight: 700; cursor: pointer; font-size: 16px; }
         .login-btn:disabled { opacity: 0.7; cursor: not-allowed; }
 
+        /* --- Layout --- */
         .sidebar { width: 85px; background: var(--sidebar-bg); margin: 15px; border-radius: 24px; display: flex; flex-direction: column; align-items: center; padding: 30px 0; box-shadow: var(--shadow-md); z-index: 1000; }
         .sidebar:hover { width: 260px; align-items: stretch; padding: 30px 20px; }
         .sidebar-logo { height: 40px; margin-bottom: 50px; object-fit: contain; padding: 0 10px; }
@@ -145,6 +164,7 @@
             #view-overtime .form-group { min-width: 100%; }
         }
         
+        /* Calendar Styles */
         .table-container-scroll { overflow-x: auto; max-width: 100%; border: 1px solid var(--border-color); border-radius: 15px; max-height: 70vh; overflow-y: auto; }
         .calendar-grid-table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
         .calendar-grid-table th, .calendar-grid-table td { padding: 10px; border-bottom: 1px solid var(--border-color); border-left: 1px solid var(--border-color); text-align: center; font-size: 12px; }
@@ -542,7 +562,7 @@
             } else if(col === 'permissions') {
                 items = allPermissionsGlobal.filter(p => p.date === today);
             }
-            let h = items.length ? '<div style="display:flex;flex-direction:column;gap:10px;">' : '<div style="text-align:center;padding:30px;">لا توجد طلبات</div>';
+            let h = items.length ? '<div style="display:flex;flex-direction:column;gap:10px;">' : '<div style="text-align:center;padding:30px;">لا يوجد طلبات</div>';
             items.forEach(d => {
                 const emp = allEmployees.find(e => e.id === d.empDocId);
                 const n = emp ? emp.name : 'غير معروف';
@@ -695,7 +715,7 @@
             const btn = document.getElementById('btn-action-save');
             btn.style.display = 'flex'; btn.innerText = 'تأكيد';
             
-            // التأكد من أن زر الإغلاق يعمل
+            // Re-assign the close button event to ensure it works
             const closeBtn = m.querySelector('button[onclick="closeActionModal()"]');
             if(closeBtn) closeBtn.onclick = window.closeActionModal;
 
