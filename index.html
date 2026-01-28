@@ -1269,7 +1269,28 @@ const [leaves, perms, ot, tasks, warns, swaps] = await Promise.all([
 
             modal.style.display = 'flex'; 
             body.innerHTML = '<div class="spinner" style="margin:20px auto;"></div>';
+if (type === 'swap') {
+        title.innerText = "تسجيل تبديل توكة";
+        const otherEmployees = allEmployees.filter(e => e.id !== empDocId);
+        const optionsHtml = otherEmployees.map(e => `<option value="${e.id}" data-name="${e.name}">${e.name}</option>`).join('');
 
+        body.innerHTML = `
+            <div class="form-group"><label>تاريخ التبديل</label><input type="date" id="act-date"></div>
+            <div class="form-group"><label>الموظف البديل</label><select id="act-alt-emp"><option value="">اختر الموظف...</option>${optionsHtml}</select></div>
+            <div class="form-group"><label>ملاحظات</label><input type="text" id="act-note" placeholder="سبب التبديل..."></div>
+        `;
+
+        saveBtn.onclick = () => {
+            const date = document.getElementById('act-date').value;
+            const select = document.getElementById('act-alt-emp');
+            const altId = select.value;
+            const note = document.getElementById('act-note').value;
+            
+            if (!date || !altId) return alert("يرجى اختيار التاريخ والموظف البديل");
+            const altName = select.options[select.selectedIndex].getAttribute('data-name');
+            saveAction('swaps', empDocId, { date: date, altEmpId: altId, altEmpName: altName, note: note });
+        };
+    }
             if (type === 'leave') {
                 title.innerText = "طلب إجازة جديدة";
                 body.innerHTML = `
@@ -1830,6 +1851,7 @@ const [leaves, perms, ot, tasks, warns, swaps] = await Promise.all([
     </script>
 </body>
 </html>
+
 
 
 
