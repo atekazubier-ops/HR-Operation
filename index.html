@@ -764,13 +764,7 @@
     });
 
     // 3. مراقبة الأذونات
-    const permsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'permissions');
-    unsubscribePermissions = onSnapshot(query(permsColRef), (snap) => {
-        allPermissionsGlobal = [];
-        snap.forEach(doc => {
-            allPermissionsGlobal.push({id: doc.id, ...doc.data()});
-        });
-        
+
         // تحديث عداد اليوم
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0];
@@ -799,38 +793,7 @@
 }
 
             // 3. مراقبة الأذونات (إصلاح الخطأ هنا)
-            const permsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'permissions');
-            unsubscribePermissions = onSnapshot(query(permsColRef), (snap) => {
-                allPermissionsGlobal = []; // تفريغ المصفوفة أولاً
-                
-                // حفظ البيانات في المصفوفة العامة
-                snap.forEach(doc => {
-                    allPermissionsGlobal.push({id: doc.id, ...doc.data()});
-                });
-
-                // حساب عداد اليوم
-                const now = new Date();
-                const year = now.getFullYear();
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                const day = String(now.getDate()).padStart(2, '0');
-                const todayStr = `${year}-${month}-${day}`;
-
-                let count = 0;
-                allPermissionsGlobal.forEach(p => {
-                    if (p.date === todayStr) count++;
-                });
-
-                // تحديث العداد في الصفحة
-                const el = document.getElementById('today-permissions');
-                if (el) el.innerText = count;
-
-                // تحديث التقويم إذا كان مفتوحاً (لإظهار الأذونات الجديدة)
-                const calView = document.getElementById('view-calendar');
-                if (calView && !calView.classList.contains('hidden')) {
-                    renderMonthlyCalendar();
-                }
-            });
-        }
+          
 
         // تم فصل هذه الدالة لتكون خارج startListening (هذا كان سبب المشكلة)
         function updateWeeklyLeavesTable() {
@@ -1784,6 +1747,7 @@ const drawTableSection = (tableId, employeesList) => {
     </script>
 </body>
 </html>
+
 
 
 
