@@ -691,65 +691,118 @@
             showView('profile');
         };
 
-        window.openActionModal = async (type, eid, bal=0) => {
-            const m = document.getElementById('actionModal');
-            const t = document.getElementById('action-modal-title');
-            const b = document.getElementById('action-modal-body');
-            const btn = document.getElementById('btn-action-save');
-            btn.style.display = 'flex'; btn.innerText = 'تأكيد';
-            m.style.display = 'flex'; b.innerHTML = '<div class="spinner" style="margin:20px auto;"></div>';
+       window.openActionModal = async (type, eid, bal=0) => {
+    const m = document.getElementById('actionModal');
+    const t = document.getElementById('action-modal-title');
+    const b = document.getElementById('action-modal-body');
+    const btn = document.getElementById('btn-action-save');
+    
+    // إعداد الزر والنافذة
+    btn.style.display = 'flex'; 
+    btn.innerText = 'تأكيد';
+    // التأكد من أن زر الإغلاق يعمل بإعادة تعيين حدث النقر (احتياطياً)
+    const closeBtn = m.querySelector('button[onclick="closeActionModal()"]');
+    if(closeBtn) closeBtn.onclick = window.closeActionModal;
 
-            if(type === 'swap') {
-                t.innerText = "تسجيل تبديل توكة";
-                const others = allEmployees.filter(e => e.id !== eid).map(e => `<option value="${e.id}" data-name="${e.name}">${e.name}</option>`).join('');
-                b.innerHTML = `<div class="form-group"><label>تاريخ التبديل</label><input type="date" id="act-date"></div><div class="form-group"><label>البديل</label><select id="act-alt">${others}</select></div><div class="form-group"><label>ملاحظات</label><input type="text" id="act-note"></div>`;
-                btn.onclick = () => {
-                    const d = document.getElementById('act-date').value, alt = document.getElementById('act-alt');
-                    if(!d || !alt.value) return alert("ناقصة");
-                    saveAction('swaps', eid, { date: d, altEmpId: alt.value, altEmpName: alt.options[alt.selectedIndex].dataset.name, note: document.getElementById('act-note').value });
-                };
-            } else if(type === 'leave') {
-                t.innerText = "إجازة";
-                b.innerHTML = `<div class="form-group"><label>نوع</label><select id="act-type"><option>سنوية</option><option>طارئة</option><option>مرضية</option></select></div><div style="display:flex;gap:10px;"><input type="date" id="act-from" style="flex:1"><input type="date" id="act-to" style="flex:1"></div><div class="form-group"><label>أيام</label><input id="act-days" disabled></div><div class="form-group"><label>تفاصيل</label><input id="act-note"></div>`;
-                const calc = () => {
-                    const f = document.getElementById('act-from').value, to = document.getElementById('act-to').value;
-                    if(f && to) document.getElementById('act-days').value = Math.ceil(Math.abs(new Date(to)-new Date(f))/86400000)+1;
-                };
-                document.getElementById('act-from').onchange = calc; document.getElementById('act-to').onchange = calc;
-                btn.onclick = async () => {
-                    const tp = document.getElementById('act-type').value, f = document.getElementById('act-from').value, to = document.getElementById('act-to').value;
-                    if(!f || !to) return alert("ناقصة");
-                    const days = Math.ceil(Math.abs(new Date(to)-new Date(f))/86400000)+1;
-                    if((tp==='سنوية'||tp==='طارئة') && days > bal) return alert("الرصيد لا يكفي");
-                    await saveAction('leaves', eid, { type:tp, date:f, daysCount:days, note:document.getElementById('act-note').value });
-                };
-            } else if(type === 'permission') {
-                t.innerText = "إذن";
-                const used = await calculateMonthlyUnits('permissions', eid);
-                b.innerHTML = `<div style="padding:10px;background:#f0f2f5;border-radius:10px;margin-bottom:10px;">المستهلك: ${used} / 5</div><div class="form-group"><label>التاريخ</label><input type="date" id="act-date"></div><div class="form-group"><label>ساعات</label><input type="number" id="act-hours" max="5"></div>`;
-                btn.onclick = () => {
-                    const h = parseFloat(document.getElementById('act-hours').value);
-                    if(used+h > 5) return alert("تجاوز الحد");
-                    saveAction('permissions', eid, { date: document.getElementById('act-date').value, hours: h });
-                };
-            } else if(type === 'overtime') {
-                t.innerText = "إضافي";
-                const used = await calculateMonthlyUnits('overtime', eid);
-                b.innerHTML = `<div style="padding:10px;background:#f0f2f5;border-radius:10px;margin-bottom:10px;">المسجل: ${used} / 20</div><div class="form-group"><label>التاريخ</label><input type="date" id="act-date"></div><div class="form-group"><label>ساعات</label><input type="number" id="act-hours"></div><div class="form-group"><label>سبب</label><input id="act-reason"></div>`;
-                btn.onclick = () => {
-                    const h = parseFloat(document.getElementById('act-hours').value);
-                    if(used+h > 20 && !confirm("تجاوز الحد. متابعة؟")) return;
-                    saveAction('overtime', eid, { date: document.getElementById('act-date').value, hours: h, reason: document.getElementById('act-reason').value });
-                };
-            } else if(type === 'task') {
-                t.innerText = "مهمة"; b.innerHTML = `<div class="form-group"><label>نوع</label><select id="act-type"><option>العمليات</option><option>مكالمات</option></select></div><div class="form-group"><label>التاريخ</label><input type="date" id="act-date"></div>`;
-                btn.onclick = () => saveAction('tasks', eid, { type: document.getElementById('act-type').value, date: document.getElementById('act-date').value });
-            } else if(type === 'warning') {
-                t.innerText = "إنذار"; b.innerHTML = `<div class="form-group"><label>نوع</label><select id="act-type"><option>لفت نظر</option><option>إنذار</option></select></div><div class="form-group"><label>التاريخ</label><input type="date" id="act-date"></div>`;
-                btn.onclick = () => saveAction('warnings', eid, { type: document.getElementById('act-type').value, date: document.getElementById('act-date').value });
+    m.style.display = 'flex'; 
+    b.innerHTML = '<div class="spinner" style="margin:20px auto;"></div>';
+
+    // --- منطق تبديل التوكة (تم تحسينه) ---
+    if(type === 'swap') {
+        t.innerText = "تسجيل تبديل توكة";
+        
+        // استبعاد الموظف الحالي من القائمة
+        const others = allEmployees
+            .filter(e => e.id !== eid)
+            .map(e => `<option value="${e.id}" data-name="${e.name}">${e.name}</option>`)
+            .join('');
+
+        b.innerHTML = `
+            <div class="form-group">
+                <label>تاريخ التبديل</label>
+                <input type="date" id="act-date">
+            </div>
+            <div class="form-group">
+                <label>الموظف البديل</label>
+                <select id="act-alt">
+                    <option value="">-- اختر الموظف البديل --</option>
+                    ${others}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>ملاحظات</label>
+                <input type="text" id="act-note" placeholder="سبب التبديل...">
+            </div>
+        `;
+
+        btn.onclick = () => {
+            const d = document.getElementById('act-date').value;
+            const altSelect = document.getElementById('act-alt');
+            const note = document.getElementById('act-note').value;
+
+            // التحقق من المدخلات بشكل منفصل لتوضيح الخطأ
+            if(!d) {
+                alert("يرجى اختيار تاريخ التبديل");
+                return;
             }
-        };
+            if(!altSelect.value) {
+                alert("يرجى اختيار الموظف البديل");
+                return;
+            }
 
+            // الحصول على اسم البديل بأمان
+            const altName = altSelect.options[altSelect.selectedIndex].getAttribute('data-name');
+
+            saveAction('swaps', eid, { 
+                date: d, 
+                altEmpId: altSelect.value, 
+                altEmpName: altName, 
+                note: note 
+            });
+        };
+    } 
+    // --- باقي الأنواع (الإجازات، الأذونات، إلخ...) تبقى كما هي ---
+    else if(type === 'leave') {
+        t.innerText = "إجازة";
+        b.innerHTML = `<div class="form-group"><label>نوع</label><select id="act-type"><option>سنوية</option><option>طارئة</option><option>مرضية</option></select></div><div style="display:flex;gap:10px;"><input type="date" id="act-from" style="flex:1"><input type="date" id="act-to" style="flex:1"></div><div class="form-group"><label>أيام</label><input id="act-days" disabled></div><div class="form-group"><label>تفاصيل</label><input id="act-note"></div>`;
+        const calc = () => {
+            const f = document.getElementById('act-from').value, to = document.getElementById('act-to').value;
+            if(f && to) document.getElementById('act-days').value = Math.ceil(Math.abs(new Date(to)-new Date(f))/86400000)+1;
+        };
+        document.getElementById('act-from').onchange = calc; document.getElementById('act-to').onchange = calc;
+        btn.onclick = async () => {
+            const tp = document.getElementById('act-type').value, f = document.getElementById('act-from').value, to = document.getElementById('act-to').value;
+            if(!f || !to) return alert("البيانات ناقصة");
+            const days = Math.ceil(Math.abs(new Date(to)-new Date(f))/86400000)+1;
+            if((tp==='سنوية'||tp==='طارئة') && days > bal) return alert("الرصيد لا يكفي");
+            await saveAction('leaves', eid, { type:tp, date:f, daysCount:days, note:document.getElementById('act-note').value });
+        };
+    } else if(type === 'permission') {
+        t.innerText = "إذن";
+        const used = await calculateMonthlyUnits('permissions', eid);
+        b.innerHTML = `<div style="padding:10px;background:#f0f2f5;border-radius:10px;margin-bottom:10px;">المستهلك: ${used} / 5</div><div class="form-group"><label>التاريخ</label><input type="date" id="act-date"></div><div class="form-group"><label>ساعات</label><input type="number" id="act-hours" max="5"></div>`;
+        btn.onclick = () => {
+            const h = parseFloat(document.getElementById('act-hours').value);
+            if(used+h > 5) return alert("تجاوز الحد");
+            saveAction('permissions', eid, { date: document.getElementById('act-date').value, hours: h });
+        };
+    } else if(type === 'overtime') {
+        t.innerText = "إضافي";
+        const used = await calculateMonthlyUnits('overtime', eid);
+        b.innerHTML = `<div style="padding:10px;background:#f0f2f5;border-radius:10px;margin-bottom:10px;">المسجل: ${used} / 20</div><div class="form-group"><label>التاريخ</label><input type="date" id="act-date"></div><div class="form-group"><label>ساعات</label><input type="number" id="act-hours"></div><div class="form-group"><label>سبب</label><input id="act-reason"></div>`;
+        btn.onclick = () => {
+            const h = parseFloat(document.getElementById('act-hours').value);
+            if(used+h > 20 && !confirm("تجاوز الحد. متابعة؟")) return;
+            saveAction('overtime', eid, { date: document.getElementById('act-date').value, hours: h, reason: document.getElementById('act-reason').value });
+        };
+    } else if(type === 'task') {
+        t.innerText = "مهمة"; b.innerHTML = `<div class="form-group"><label>نوع</label><select id="act-type"><option>العمليات</option><option>مكالمات</option></select></div><div class="form-group"><label>التاريخ</label><input type="date" id="act-date"></div>`;
+        btn.onclick = () => saveAction('tasks', eid, { type: document.getElementById('act-type').value, date: document.getElementById('act-date').value });
+    } else if(type === 'warning') {
+        t.innerText = "إنذار"; b.innerHTML = `<div class="form-group"><label>نوع</label><select id="act-type"><option>لفت نظر</option><option>إنذار</option></select></div><div class="form-group"><label>التاريخ</label><input type="date" id="act-date"></div>`;
+        btn.onclick = () => saveAction('warnings', eid, { type: document.getElementById('act-type').value, date: document.getElementById('act-date').value });
+    }
+};
         window.saveAction = async (col, eid, data) => {
             try { await addDoc(collection(db, 'artifacts', appId, 'public', 'data', col), { ...data, empDocId: eid, createdAt: serverTimestamp() }); window.closeActionModal(); showToast("تم"); viewProfile(eid); } catch(e){ console.error(e); alert("خطأ"); }
         };
@@ -831,3 +884,4 @@
     </script>
 </body>
 </html>
+
