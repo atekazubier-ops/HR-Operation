@@ -252,6 +252,16 @@
 .cell-sick { background-color: #f1c40f; color: black; font-size: 10px; }
 .cell-permission { background-color: #eaf6ff; color: #3498db; font-weight: bold; border: 1px solid #3498db; }
 .cell-weekend { background-color: #f0f2f5; color: #b2bec3; background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.03) 5px, rgba(0,0,0,0.03) 10px); }
+        /* أضف هذا مع باقي تنسيقات الخلايا .cell-vacation ... */
+.cell-swap { 
+    background-color: #9b59b6; /* لون بنفسجي */
+    color: white; 
+    font-size: 9px; 
+    border: 1px solid #8e44ad;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
     </style>
 </head>
 <body>
@@ -664,6 +674,8 @@
         let unsubscribeLeaves = null;
         let unsubscribePermissions = null;
         let allPermissionsGlobal = [];
+        let allSwapsGlobal = [];
+        let unsubscribeSwaps = null;
 
         onAuthStateChanged(auth, (user) => {
             const loadingScreen = document.getElementById('loading-screen');
@@ -947,6 +959,18 @@
                 console.error(error);
                 modalBody.innerHTML = '<p style="color:red; text-align:center;">حدث خطأ أثناء عرض البيانات</p>';
             }
+            const swapsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'swaps');
+    unsubscribeSwaps = onSnapshot(query(swapsColRef), (snap) => {
+        allSwapsGlobal = [];
+        snap.forEach(doc => allSwapsGlobal.push({id: doc.id, ...doc.data()}));
+        
+        // تحديث التقويم إذا كان مفتوحاً
+        const calView = document.getElementById('view-calendar');
+        if (calView && !calView.classList.contains('hidden')) {
+            renderMonthlyCalendar();
+        }
+    });
+}
         };
         // --- Core UI Updates ---
      function updateUI() {
@@ -1236,6 +1260,40 @@
                 </div>
             `;
             showView('profile');
+            const swaps = await fetchActionData('swaps', id);
+
+const profileContent = document.getElementById('profile-content');
+profileContent.innerHTML = `
+    <div class="action-grid">
+        <div class="action-card-btn" onclick="openActionModal('leave', '${emp.id}', ${currentBalance})"><i class="fas fa-plane-departure" style="color:#e67e22"></i><span>طلب إجازة</span></div>
+        <div class="action-card-btn" onclick="openActionModal('permission', '${emp.id}')"><i class="fas fa-clock" style="color:#3498db"></i><span>طلب إذن</span></div>
+        <div class="action-card-btn" onclick="openActionModal('overtime', '${emp.id}')"><i class="fas fa-plus-circle" style="color:#2ecc71"></i><span>عمل إضافي</span></div>
+        <div class="action-card-btn" onclick="openActionModal('swap', '${emp.id}')"><i class="fas fa-exchange-alt" style="color:#9b59b6"></i><span>تبديل توكة</span></div>
+        <div class="action-card-btn" onclick="openActionModal('task', '${emp.id}')"><i class="fas fa-briefcase" style="color:#9b59b6"></i><span>مهمة عمل</span></div>
+        <div class="action-card-btn" onclick="openActionModal('warning', '${emp.id}')"><i class="fas fa-exclamation-triangle" style="color:#e74c3c"></i><span>إنذار</span></div>
+    </div>
+
+    <div class="profile-tabs-content">
+        <div class="sub-card">
+            <h4><i class="fas fa-exchange-alt"></i> سجل تبديل التوكات</h4>
+            <table class="data-table" style="margin-top:0;">
+                <thead><tr><th>التاريخ</th><th>البديل</th><th>إجراءات</th></tr></thead>
+                <tbody>
+                    ${swaps.map(s => `
+                        <tr>
+                            <td>${s.date}</td>
+                            <td>${s.altEmpName}</td>
+                            <td>
+                                <button onclick="deleteAction('swaps', '${s.id}', '${emp.id}')" class="btn-icon delete"><i class="fas fa-trash-alt"></i></button>
+                            </td>
+                        </tr>
+                    `).join('') || '<tr><td colspan="3" style="text-align:center">لا يوجد</td></tr>'}
+                </tbody>
+            </table>
+        </div>
+        
+        </div>
+`;
         };
 
         // --- Modals Logic with Limits ---
@@ -1253,7 +1311,50 @@
 
             modal.style.display = 'flex'; 
             body.innerHTML = '<div class="spinner" style="margin:20px auto;"></div>';
+else if (type === 'swap') {
+    title.innerText = "تسجيل تبديل توكة";
+    
+    // إنشاء قائمة الموظفين (استثناء الموظف الحالي)
+    const otherEmployees = allEmployees.filter(e => e.id !== empDocId);
+    const optionsHtml = otherEmployees.map(e => `<option value="${e.id}" data-name="${e.name}">${e.name}</option>`).join('');
 
+    body.innerHTML = `
+        <div class="form-group">
+            <label>تاريخ التبديل</label>
+            <input type="date" id="act-date">
+        </div>
+        <div class="form-group">
+            <label>الموظف البديل (الذي سيغطي الشيفت)</label>
+            <select id="act-alt-emp">
+                <option value="">اختر الموظف...</option>
+                ${optionsHtml}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>ملاحظات</label>
+            <input type="text" id="act-note" placeholder="سبب التبديل...">
+        </div>
+    `;
+
+    saveBtn.onclick = () => {
+        const date = document.getElementById('act-date').value;
+        const select = document.getElementById('act-alt-emp');
+        const altId = select.value;
+        const note = document.getElementById('act-note').value;
+        
+        if (!date || !altId) return alert("يرجى اختيار التاريخ والموظف البديل");
+        
+        // الحصول على اسم البديل
+        const altName = select.options[select.selectedIndex].getAttribute('data-name');
+
+        saveAction('swaps', empDocId, { 
+            date: date, 
+            altEmpId: altId,
+            altEmpName: altName,
+            note: note
+        });
+    };
+}
             if (type === 'leave') {
                 title.innerText = "طلب إجازة جديدة";
                 body.innerHTML = `
@@ -1719,20 +1820,17 @@
                 if (employeesList.length === 0) {
                     bodyHTML += `<tr><td colspan="${daysInMonth + 1}" style="text-align:center; padding:20px;">لا يوجد موظفين في هذه الفترة</td></tr>`;
                 } else {
-                    for (const emp of employeesList) {
-                        const displayName = emp.name.split(' ').slice(0, 2).join(' ');
-                        bodyHTML += `<tr><td>
-                            <div style="font-weight:bold;">${displayName}</div>
-                            <div style="font-size:10px; color:var(--text-muted);">${emp.empId || ''}</div>
-                        </td>`;
+                   for (let i = 1; i <= daysInMonth; i++) {
+    const checkDate = new Date(year, month - 1, i);
+    checkDate.setHours(0,0,0,0);
+    const y = checkDate.getFullYear();
+    const m = String(checkDate.getMonth() + 1).padStart(2, '0');
+    const d = String(checkDate.getDate()).padStart(2, '0');
+    const dateStrComp = `${y}-${m}-${d}`;
+    const dateStr = checkDate.toISOString().split('T')[0];
 
-                        for (let i = 1; i <= daysInMonth; i++) {
-                            const checkDate = new Date(year, month - 1, i);
-                            checkDate.setHours(0,0,0,0);
-                            const dateStr = checkDate.toISOString().split('T')[0]; // للتلميح
-
-                            let cellContent = '';
-                            let cellClass = '';
+    let cellContent = '';
+    let cellClass = '';
 
                             // أ. العطلة الأسبوعية
                             const dayIndex = checkDate.getDay();
@@ -1755,7 +1853,26 @@
                                     else if (leave.type === 'مرضية') { cellClass = 'cell-sick'; cellContent = 'M'; }
                                 }
                             }
+if (!cellContent && typeof allSwapsGlobal !== 'undefined') {
+        // الحالة 1: الموظف الحالي هو الطالب (لن يكون موجوداً، بديله سيحضر)
+        const swapOut = allSwapsGlobal.find(s => s.empDocId === emp.id && s.date === dateStrComp);
+        
+        // الحالة 2: الموظف الحالي هو البديل (سيحضر بدلاً من شخص آخر)
+        const swapIn = allSwapsGlobal.find(s => s.altEmpId === emp.id && s.date === dateStrComp);
 
+        if (swapOut) {
+            cellClass = 'cell-swap';
+            // سهم للخارج واسم البديل
+            cellContent = `<i class="fas fa-arrow-right"></i> ${swapOut.altEmpName.split(' ')[0]}`;
+        } else if (swapIn) {
+            cellClass = 'cell-swap';
+            // سهم للداخل (اختياري) للإشارة أنه بديل
+            // نحتاج لجلب اسم الطالب الأصلي
+            const originalEmp = allEmployees.find(e => e.id === swapIn.empDocId);
+            const originalName = originalEmp ? originalEmp.name.split(' ')[0] : 'زميل';
+            cellContent = `<i class="fas fa-arrow-left"></i> ${originalName}`;
+        }
+    }
                             // ج. الأذونات
                             if (!cellContent && typeof allPermissionsGlobal !== 'undefined') {
                                 const y = checkDate.getFullYear();
@@ -1786,6 +1903,7 @@
     </script>
 </body>
 </html>
+
 
 
 
