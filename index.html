@@ -1220,41 +1220,7 @@
     `;
     showView('profile');
 };
-            const swaps = await fetchActionData('swaps', id);
-
-const profileContent = document.getElementById('profile-content');
-profileContent.innerHTML = `
-    <div class="action-grid">
-        <div class="action-card-btn" onclick="openActionModal('leave', '${emp.id}', ${currentBalance})"><i class="fas fa-plane-departure" style="color:#e67e22"></i><span>طلب إجازة</span></div>
-        <div class="action-card-btn" onclick="openActionModal('permission', '${emp.id}')"><i class="fas fa-clock" style="color:#3498db"></i><span>طلب إذن</span></div>
-        <div class="action-card-btn" onclick="openActionModal('overtime', '${emp.id}')"><i class="fas fa-plus-circle" style="color:#2ecc71"></i><span>عمل إضافي</span></div>
-        <div class="action-card-btn" onclick="openActionModal('swap', '${emp.id}')"><i class="fas fa-exchange-alt" style="color:#9b59b6"></i><span>تبديل توكة</span></div>
-        <div class="action-card-btn" onclick="openActionModal('task', '${emp.id}')"><i class="fas fa-briefcase" style="color:#9b59b6"></i><span>مهمة عمل</span></div>
-        <div class="action-card-btn" onclick="openActionModal('warning', '${emp.id}')"><i class="fas fa-exclamation-triangle" style="color:#e74c3c"></i><span>إنذار</span></div>
-    </div>
-
-    <div class="profile-tabs-content">
-        <div class="sub-card">
-            <h4><i class="fas fa-exchange-alt"></i> سجل تبديل التوكات</h4>
-            <table class="data-table" style="margin-top:0;">
-                <thead><tr><th>التاريخ</th><th>البديل</th><th>إجراءات</th></tr></thead>
-                <tbody>
-                    ${swaps.map(s => `
-                        <tr>
-                            <td>${s.date}</td>
-                            <td>${s.altEmpName}</td>
-                            <td>
-                                <button onclick="deleteAction('swaps', '${s.id}', '${emp.id}')" class="btn-icon delete"><i class="fas fa-trash-alt"></i></button>
-                            </td>
-                        </tr>
-                    `).join('') || '<tr><td colspan="3" style="text-align:center">لا يوجد</td></tr>'}
-                </tbody>
-            </table>
-        </div>
-        
-        </div>
-`;
-        };
+          
 
         // --- Modals Logic with Limits ---
       // --- Modals Logic with Limits (تم تعديل منطق التعارض) ---
@@ -1691,6 +1657,7 @@ const drawTableSection = (tableId, employeesList) => {
     </script>
 </body>
 </html>
+
 
 
 
