@@ -27,7 +27,6 @@
         * { box-sizing: border-box; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
         body { font-family: 'El Messiri', sans-serif; background-color: var(--bg-main); color: var(--text-main); margin: 0; display: flex; height: 100vh; overflow: hidden; }
 
-        /* --- Login --- */
         #login-view { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-main); z-index: 5000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
         .login-card { background: var(--bg-card); padding: 40px; border-radius: 30px; box-shadow: var(--shadow-md); width: 90%; max-width: 400px; text-align: center; border: 1px solid var(--border-color); }
         .login-logo { width: 150px; margin-bottom: 20px; }
@@ -36,7 +35,6 @@
         .login-btn { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 15px; font-weight: 700; cursor: pointer; font-size: 16px; }
         .login-btn:disabled { opacity: 0.7; cursor: not-allowed; }
 
-        /* --- Layout --- */
         .sidebar { width: 85px; background: var(--sidebar-bg); margin: 15px; border-radius: 24px; display: flex; flex-direction: column; align-items: center; padding: 30px 0; box-shadow: var(--shadow-md); z-index: 1000; }
         .sidebar:hover { width: 260px; align-items: stretch; padding: 30px 20px; }
         .sidebar-logo { height: 40px; margin-bottom: 50px; object-fit: contain; padding: 0 10px; }
@@ -147,7 +145,6 @@
             #view-overtime .form-group { min-width: 100%; }
         }
         
-        /* Calendar Styles */
         .table-container-scroll { overflow-x: auto; max-width: 100%; border: 1px solid var(--border-color); border-radius: 15px; max-height: 70vh; overflow-y: auto; }
         .calendar-grid-table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
         .calendar-grid-table th, .calendar-grid-table td { padding: 10px; border-bottom: 1px solid var(--border-color); border-left: 1px solid var(--border-color); text-align: center; font-size: 12px; }
@@ -545,7 +542,7 @@
             } else if(col === 'permissions') {
                 items = allPermissionsGlobal.filter(p => p.date === today);
             }
-            let h = items.length ? '<div style="display:flex;flex-direction:column;gap:10px;">' : '<div style="text-align:center;padding:30px;">لا يوجد طلبات</div>';
+            let h = items.length ? '<div style="display:flex;flex-direction:column;gap:10px;">' : '<div style="text-align:center;padding:30px;">لا توجد طلبات</div>';
             items.forEach(d => {
                 const emp = allEmployees.find(e => e.id === d.empDocId);
                 const n = emp ? emp.name : 'غير معروف';
@@ -566,7 +563,7 @@
             list.sort((a,b) => (a.empId||"").localeCompare(b.empId||"", undefined, {numeric:true}));
             
             list.forEach((d, i) => {
-                if(tb) tb.innerHTML += `<tr><td style="font-weight:bold;color:var(--text-muted);">${i+1}</td><td style="font-weight:800;color:var(--primary)">${d.empId||'--'}</td><td style="font-weight:700">${d.name||'--'}</td><td>${d.dept||'--'}</td><td>${d.role||'--'}</td><td><button onclick="viewProfile('${d.id}')" class="btn-action btn-view"><i class="fas fa-eye"></i></button><button onclick="deleteEmp('${d.id}')" class="btn-action btn-delete"><i class="fas fa-trash-alt"></i></button></td></tr>`;
+                if(tb) tb.innerHTML += `<tr><td style="font-weight:bold;color:var(--text-muted);">${i+1}</td><td style="font-weight:800;color:var(--primary)">${d.empId||'--'}</td><td style="font-weight:700">${d.name||'--'}</td><td>${d.dept||'--'}</td><td>${d.dept||'--'}</td><td>${d.role||'--'}</td><td><button onclick="viewProfile('${d.id}')" class="btn-action btn-view"><i class="fas fa-eye"></i></button><button onclick="deleteEmp('${d.id}')" class="btn-action btn-delete"><i class="fas fa-trash-alt"></i></button></td></tr>`;
                 if(d.schedule) {
                     days.forEach((day, idx) => {
                         const sh = d.schedule[day];
@@ -691,118 +688,72 @@
             showView('profile');
         };
 
-       window.openActionModal = async (type, eid, bal=0) => {
-    const m = document.getElementById('actionModal');
-    const t = document.getElementById('action-modal-title');
-    const b = document.getElementById('action-modal-body');
-    const btn = document.getElementById('btn-action-save');
-    
-    // إعداد الزر والنافذة
-    btn.style.display = 'flex'; 
-    btn.innerText = 'تأكيد';
-    // التأكد من أن زر الإغلاق يعمل بإعادة تعيين حدث النقر (احتياطياً)
-    const closeBtn = m.querySelector('button[onclick="closeActionModal()"]');
-    if(closeBtn) closeBtn.onclick = window.closeActionModal;
+        window.openActionModal = async (type, eid, bal=0) => {
+            const m = document.getElementById('actionModal');
+            const t = document.getElementById('action-modal-title');
+            const b = document.getElementById('action-modal-body');
+            const btn = document.getElementById('btn-action-save');
+            btn.style.display = 'flex'; btn.innerText = 'تأكيد';
+            
+            // التأكد من أن زر الإغلاق يعمل
+            const closeBtn = m.querySelector('button[onclick="closeActionModal()"]');
+            if(closeBtn) closeBtn.onclick = window.closeActionModal;
 
-    m.style.display = 'flex'; 
-    b.innerHTML = '<div class="spinner" style="margin:20px auto;"></div>';
+            m.style.display = 'flex'; b.innerHTML = '<div class="spinner" style="margin:20px auto;"></div>';
 
-    // --- منطق تبديل التوكة (تم تحسينه) ---
-    if(type === 'swap') {
-        t.innerText = "تسجيل تبديل توكة";
-        
-        // استبعاد الموظف الحالي من القائمة
-        const others = allEmployees
-            .filter(e => e.id !== eid)
-            .map(e => `<option value="${e.id}" data-name="${e.name}">${e.name}</option>`)
-            .join('');
-
-        b.innerHTML = `
-            <div class="form-group">
-                <label>تاريخ التبديل</label>
-                <input type="date" id="act-date">
-            </div>
-            <div class="form-group">
-                <label>الموظف البديل</label>
-                <select id="act-alt">
-                    <option value="">-- اختر الموظف البديل --</option>
-                    ${others}
-                </select>
-            </div>
-            <div class="form-group">
-                <label>ملاحظات</label>
-                <input type="text" id="act-note" placeholder="سبب التبديل...">
-            </div>
-        `;
-
-        btn.onclick = () => {
-            const d = document.getElementById('act-date').value;
-            const altSelect = document.getElementById('act-alt');
-            const note = document.getElementById('act-note').value;
-
-            // التحقق من المدخلات بشكل منفصل لتوضيح الخطأ
-            if(!d) {
-                alert("يرجى اختيار تاريخ التبديل");
-                return;
+            if(type === 'swap') {
+                t.innerText = "تسجيل تبديل توكة";
+                const others = allEmployees.filter(e => e.id !== eid).map(e => `<option value="${e.id}" data-name="${e.name}">${e.name}</option>`).join('');
+                b.innerHTML = `<div class="form-group"><label>تاريخ التبديل</label><input type="date" id="act-date"></div><div class="form-group"><label>الموظف البديل</label><select id="act-alt"><option value="">-- اختر --</option>${others}</select></div><div class="form-group"><label>ملاحظات</label><input type="text" id="act-note"></div>`;
+                btn.onclick = () => {
+                    const d = document.getElementById('act-date').value, alt = document.getElementById('act-alt');
+                    if(!d) return alert("يرجى اختيار التاريخ");
+                    if(!alt.value) return alert("يرجى اختيار البديل");
+                    saveAction('swaps', eid, { date: d, altEmpId: alt.value, altEmpName: alt.options[alt.selectedIndex].dataset.name, note: document.getElementById('act-note').value });
+                };
+            } else if(type === 'leave') {
+                t.innerText = "إجازة";
+                b.innerHTML = `<div class="form-group"><label>نوع</label><select id="act-type"><option>سنوية</option><option>طارئة</option><option>مرضية</option></select></div><div style="display:flex;gap:10px;"><input type="date" id="act-from" style="flex:1"><input type="date" id="act-to" style="flex:1"></div><div class="form-group"><label>أيام</label><input id="act-days" disabled></div><div class="form-group"><label>تفاصيل</label><input id="act-note"></div>`;
+                const calc = () => {
+                    const f = document.getElementById('act-from').value, to = document.getElementById('act-to').value;
+                    if(f && to) document.getElementById('act-days').value = Math.ceil(Math.abs(new Date(to)-new Date(f))/86400000)+1;
+                };
+                document.getElementById('act-from').onchange = calc; document.getElementById('act-to').onchange = calc;
+                btn.onclick = async () => {
+                    const tp = document.getElementById('act-type').value, f = document.getElementById('act-from').value, to = document.getElementById('act-to').value;
+                    if(!f || !to) return alert("البيانات ناقصة");
+                    const days = Math.ceil(Math.abs(new Date(to)-new Date(f))/86400000)+1;
+                    if((tp==='سنوية'||tp==='طارئة') && days > bal) return alert("الرصيد لا يكفي");
+                    await saveAction('leaves', eid, { type:tp, date:f, daysCount:days, note:document.getElementById('act-note').value });
+                };
+            } else if(type === 'permission') {
+                t.innerText = "إذن";
+                const used = await calculateMonthlyUnits('permissions', eid);
+                b.innerHTML = `<div style="padding:10px;background:#f0f2f5;border-radius:10px;margin-bottom:10px;">المستهلك: ${used} / 5</div><div class="form-group"><label>التاريخ</label><input type="date" id="act-date"></div><div class="form-group"><label>ساعات</label><input type="number" id="act-hours" max="5"></div>`;
+                btn.onclick = () => {
+                    const h = parseFloat(document.getElementById('act-hours').value);
+                    if(used+h > 5) return alert("تجاوز الحد");
+                    saveAction('permissions', eid, { date: document.getElementById('act-date').value, hours: h });
+                };
+            } else if(type === 'overtime') {
+                t.innerText = "إضافي";
+                const used = await calculateMonthlyUnits('overtime', eid);
+                b.innerHTML = `<div style="padding:10px;background:#f0f2f5;border-radius:10px;margin-bottom:10px;">المسجل: ${used} / 20</div><div class="form-group"><label>التاريخ</label><input type="date" id="act-date"></div><div class="form-group"><label>ساعات</label><input type="number" id="act-hours"></div><div class="form-group"><label>سبب</label><input id="act-reason"></div>`;
+                btn.onclick = () => {
+                    const h = parseFloat(document.getElementById('act-hours').value);
+                    if(used+h > 20 && !confirm("تجاوز الحد. متابعة؟")) return;
+                    saveAction('overtime', eid, { date: document.getElementById('act-date').value, hours: h, reason: document.getElementById('act-reason').value });
+                };
+            } else if(type === 'task') {
+                t.innerText = "مهمة"; b.innerHTML = `<div class="form-group"><label>نوع</label><select id="act-type"><option>العمليات</option><option>مكالمات</option></select></div><div class="form-group"><label>التاريخ</label><input type="date" id="act-date"></div>`;
+                btn.onclick = () => saveAction('tasks', eid, { type: document.getElementById('act-type').value, date: document.getElementById('act-date').value });
+            } else if(type === 'warning') {
+                t.innerText = "إنذار"; b.innerHTML = `<div class="form-group"><label>نوع</label><select id="act-type"><option>لفت نظر</option><option>إنذار</option></select></div><div class="form-group"><label>التاريخ</label><input type="date" id="act-date"></div>`;
+                btn.onclick = () => saveAction('warnings', eid, { type: document.getElementById('act-type').value, date: document.getElementById('act-date').value });
             }
-            if(!altSelect.value) {
-                alert("يرجى اختيار الموظف البديل");
-                return;
-            }
+        };
 
-            // الحصول على اسم البديل بأمان
-            const altName = altSelect.options[altSelect.selectedIndex].getAttribute('data-name');
-
-            saveAction('swaps', eid, { 
-                date: d, 
-                altEmpId: altSelect.value, 
-                altEmpName: altName, 
-                note: note 
-            });
-        };
-    } 
-    // --- باقي الأنواع (الإجازات، الأذونات، إلخ...) تبقى كما هي ---
-    else if(type === 'leave') {
-        t.innerText = "إجازة";
-        b.innerHTML = `<div class="form-group"><label>نوع</label><select id="act-type"><option>سنوية</option><option>طارئة</option><option>مرضية</option></select></div><div style="display:flex;gap:10px;"><input type="date" id="act-from" style="flex:1"><input type="date" id="act-to" style="flex:1"></div><div class="form-group"><label>أيام</label><input id="act-days" disabled></div><div class="form-group"><label>تفاصيل</label><input id="act-note"></div>`;
-        const calc = () => {
-            const f = document.getElementById('act-from').value, to = document.getElementById('act-to').value;
-            if(f && to) document.getElementById('act-days').value = Math.ceil(Math.abs(new Date(to)-new Date(f))/86400000)+1;
-        };
-        document.getElementById('act-from').onchange = calc; document.getElementById('act-to').onchange = calc;
-        btn.onclick = async () => {
-            const tp = document.getElementById('act-type').value, f = document.getElementById('act-from').value, to = document.getElementById('act-to').value;
-            if(!f || !to) return alert("البيانات ناقصة");
-            const days = Math.ceil(Math.abs(new Date(to)-new Date(f))/86400000)+1;
-            if((tp==='سنوية'||tp==='طارئة') && days > bal) return alert("الرصيد لا يكفي");
-            await saveAction('leaves', eid, { type:tp, date:f, daysCount:days, note:document.getElementById('act-note').value });
-        };
-    } else if(type === 'permission') {
-        t.innerText = "إذن";
-        const used = await calculateMonthlyUnits('permissions', eid);
-        b.innerHTML = `<div style="padding:10px;background:#f0f2f5;border-radius:10px;margin-bottom:10px;">المستهلك: ${used} / 5</div><div class="form-group"><label>التاريخ</label><input type="date" id="act-date"></div><div class="form-group"><label>ساعات</label><input type="number" id="act-hours" max="5"></div>`;
-        btn.onclick = () => {
-            const h = parseFloat(document.getElementById('act-hours').value);
-            if(used+h > 5) return alert("تجاوز الحد");
-            saveAction('permissions', eid, { date: document.getElementById('act-date').value, hours: h });
-        };
-    } else if(type === 'overtime') {
-        t.innerText = "إضافي";
-        const used = await calculateMonthlyUnits('overtime', eid);
-        b.innerHTML = `<div style="padding:10px;background:#f0f2f5;border-radius:10px;margin-bottom:10px;">المسجل: ${used} / 20</div><div class="form-group"><label>التاريخ</label><input type="date" id="act-date"></div><div class="form-group"><label>ساعات</label><input type="number" id="act-hours"></div><div class="form-group"><label>سبب</label><input id="act-reason"></div>`;
-        btn.onclick = () => {
-            const h = parseFloat(document.getElementById('act-hours').value);
-            if(used+h > 20 && !confirm("تجاوز الحد. متابعة؟")) return;
-            saveAction('overtime', eid, { date: document.getElementById('act-date').value, hours: h, reason: document.getElementById('act-reason').value });
-        };
-    } else if(type === 'task') {
-        t.innerText = "مهمة"; b.innerHTML = `<div class="form-group"><label>نوع</label><select id="act-type"><option>العمليات</option><option>مكالمات</option></select></div><div class="form-group"><label>التاريخ</label><input type="date" id="act-date"></div>`;
-        btn.onclick = () => saveAction('tasks', eid, { type: document.getElementById('act-type').value, date: document.getElementById('act-date').value });
-    } else if(type === 'warning') {
-        t.innerText = "إنذار"; b.innerHTML = `<div class="form-group"><label>نوع</label><select id="act-type"><option>لفت نظر</option><option>إنذار</option></select></div><div class="form-group"><label>التاريخ</label><input type="date" id="act-date"></div>`;
-        btn.onclick = () => saveAction('warnings', eid, { type: document.getElementById('act-type').value, date: document.getElementById('act-date').value });
-    }
-};
+        window.closeActionModal = () => document.getElementById('actionModal').style.display = 'none';
         window.saveAction = async (col, eid, data) => {
             try { await addDoc(collection(db, 'artifacts', appId, 'public', 'data', col), { ...data, empDocId: eid, createdAt: serverTimestamp() }); window.closeActionModal(); showToast("تم"); viewProfile(eid); } catch(e){ console.error(e); alert("خطأ"); }
         };
@@ -846,10 +797,8 @@
                             const cds = cd.toISOString().split('T')[0];
                             let cc = '', cnt = '';
                             
-                            // Weekend
                             if(emp.schedule && emp.schedule[days[cd.getDay()]] === 'عطلة') cc = 'cell-weekend';
                             
-                            // Leaves
                             const l = allLeavesGlobal.find(x => {
                                 const s = new Date(x.date); s.setHours(0,0,0,0);
                                 const e = new Date(s); e.setDate(e.getDate()+(parseFloat(x.daysCount||1)-1)); e.setHours(23,59,59,999);
@@ -857,7 +806,6 @@
                             });
                             if(l) { if(l.type==='سنوية'){cc='cell-vacation';cnt='S';} else if(l.type==='طارئة'){cc='cell-emergency';cnt='E';} else {cc='cell-sick';cnt='M';} }
 
-                            // Swaps
                             const so = allSwapsGlobal.find(s => s.empDocId === emp.id && s.date === cds);
                             const si = allSwapsGlobal.find(s => s.altEmpId === emp.id && s.date === cds);
                             if(so) { cc='cell-swap'; cnt=`<i class="fas fa-arrow-right"></i> ${so.altEmpName.split(' ')[0]}`; }
@@ -867,7 +815,6 @@
                                 cnt=`<i class="fas fa-arrow-left"></i> ${oEmp?oEmp.name.split(' ')[0]:'زميل'}`; 
                             }
 
-                            // Perms
                             const per = allPermissionsGlobal.find(p => p.empDocId === emp.id && p.date === cds);
                             if(per && !cnt) { cc='cell-permission'; cnt=per.hours; }
 
@@ -884,4 +831,3 @@
     </script>
 </body>
 </html>
-
