@@ -1821,15 +1821,20 @@ if (type === 'swap') {
                                 }
                             }
 // --- أضف هذا الكود هنا ---
-                            // Swaps
-                            const so = allSwapsGlobal.find(s => s.empDocId === emp.id && s.date === cds);
-                            const si = allSwapsGlobal.find(s => s.altEmpId === emp.id && s.date === cds);
-                            if(so) { cc='cell-swap'; cnt=`<i class="fas fa-arrow-right"></i> ${so.altEmpName.split(' ')[0]}`; }
-                            else if(si) { 
-                                cc='cell-swap'; 
-                                const oEmp = allEmployees.find(e => e.id === si.empDocId);
-                                cnt=`<i class="fas fa-arrow-left"></i> ${oEmp?oEmp.name.split(' ')[0]:'زميل'}`; 
-                            }
+                            // الكود الصحيح (استخدم هذا)
+// Swaps
+const so = allSwapsGlobal.find(s => s.empDocId === emp.id && s.date === dateStr);
+const si = allSwapsGlobal.find(s => s.altEmpId === emp.id && s.date === dateStr);
+
+if(so) { 
+    cellClass = 'cell-swap'; 
+    cellContent = `<i class="fas fa-arrow-right"></i> ${so.altEmpName.split(' ')[0]}`; 
+}
+else if(si) { 
+    cellClass = 'cell-swap'; 
+    const oEmp = allEmployees.find(e => e.id === si.empDocId);
+    cellContent = `<i class="fas fa-arrow-left"></i> ${oEmp ? oEmp.name.split(' ')[0] : 'زميل'}`; 
+}
                             // -------------------------
                             // ج. الأذونات
                             if (!cellContent && typeof allPermissionsGlobal !== 'undefined') {
@@ -1861,6 +1866,7 @@ if (type === 'swap') {
     </script>
 </body>
 </html>
+
 
 
 
