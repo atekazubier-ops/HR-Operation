@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/presto.app/">
     
-    <title>Presto 1O1P</title>
+    <title>Presto OP</title>
     
     <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -614,51 +614,47 @@ window.previewOvertimeData = async function() {
         return;
     }
 
-    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري البحث...</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري جلب البيانات...</td></tr>';
 
     try {
-        // تنبيه: تأكد أن اسم الكولكشن 'overtime' هو نفس الاسم في Firebase عندك
-        const overtimeRef = collection(db, "overtime"); 
-        const q = query(overtimeRef, 
-            where("date", ">=", fromDate), 
-            where("date", "<=", toDate));
-            
-        const querySnapshot = await getDocs(q);
+        // جلب البيانات من كولكشن 'overtime'
+        const querySnapshot = await getDocs(collection(db, "overtime"));
         
-        if (querySnapshot.empty) {
-            console.log("No data found for period:", fromDate, "to", toDate);
-            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">لا توجد بيانات لهذه الفترة (تأكد من صحة التواريخ)</td></tr>';
-            totalDisplay.innerText = "0";
-            return;
-        }
-
         let html = "";
         let totalHours = 0;
+        let count = 0;
 
         querySnapshot.forEach((doc) => {
             const data = doc.data();
-            // تأكد أن أسماء الحقول (date, empName, hours) مطابقة تماماً لقاعدة بياناتك
-            totalHours += parseFloat(data.hours || 0);
-            html += `
-                <tr>
-                    <td>${data.date || '-'}</td>
-                    <td>${data.empName || 'غير معروف'}</td>
-                    <td>${data.dept || '-'}</td>
-                    <td><span class="status-badge badge-success">${data.hours || 0} ساعة</span></td>
-                    <td>${data.reason || '-'}</td>
-                </tr>`;
+            // فلترة البيانات يدوياً لضمان العمل حتى بدون Index حالياً
+            if (data.date >= fromDate && data.date <= toDate) {
+                const h = parseFloat(data.hours || 0);
+                totalHours += h;
+                count++;
+                html += `
+                    <tr>
+                        <td>${data.date}</td>
+                        <td>${data.empName || 'غير معروف'}</td>
+                        <td>${data.dept || '-'}</td>
+                        <td><span class="status-badge badge-success">${h} ساعة</span></td>
+                        <td>${data.reason || '-'}</td>
+                    </tr>`;
+            }
         });
 
-        reportBody.innerHTML = html;
+        if (count === 0) {
+            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">لا توجد بيانات تطابق هذه الفترة</td></tr>';
+        } else {
+            reportBody.innerHTML = html;
+        }
         totalDisplay.innerText = totalHours.toFixed(2);
 
     } catch (error) {
-        console.error("Error Detail:", error);
-        alert("فشل جلب البيانات. افحص الكونسول (F12) لمعرفة السبب.");
-        reportBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:red;">خطأ: ${error.message}</td></tr>`;
+        console.error("Firebase Error:", error);
+        alert("حدث خطأ، يرجى فحص الـ Console (F12)");
+        reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">فشل الاتصال</td></tr>';
     }
 };
-
 window.downloadOvertimeCSV = function() {
     const table = document.querySelector("#view-overtime table");
     if (!table || table.rows.length <= 1) {
@@ -1933,6 +1929,7 @@ async function previewOvertimeData() {
     </script>
 </body>
 </html>
+
 
 
 
