@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/presto.app/">
     
-    <title>Presto 11OP</title>
+    <title>Presto OP</title>
     
     <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -602,13 +602,6 @@
             loadReminders();
         }
     };
-// ربط الدوال بالنافذة لضمان عملها مع onclick
-// 1. جعل الدالة عالمية لكي يراها زر "بحث"
-// --- قسم معالجة العمل الإضافي (المصحح) ---
-
-// 1. دالة عرض البيانات مع ربطها بـ window لضمان عمل زر "بحث"
-
-// 2. دالة تحميل الملف مع ربطها بـ window لضمان عمل زر "تحميل"
 
     // هذه الدالة ضرورية لعرض التذكيرات
     function loadReminders() {
@@ -1790,136 +1783,100 @@
             drawTableSection('calendar-table-morning', morningEmployees);
             drawTableSection('calendar-table-evening', eveningEmployees);
         };
+        // --- 1. دالة البحث وعرض البيانات (إصلاح زر البحث) ---
+        window.previewOvertimeData = async () => {
+            const dateFrom = document.getElementById('overtime-from').value;
+            const dateTo = document.getElementById('overtime-to').value;
+            const tbody = document.getElementById('overtime-report-body');
+            const totalEl = document.getElementById('total-month-hours');
 
-window.previewOvertimeData = async function() {
-    const fromInput = document.getElementById('overtime-from').value;
-    const toInput = document.getElementById('overtime-to').value;
-    const reportBody = document.getElementById('overtime-report-body');
-    const totalDisplay = document.getElementById('total-month-hours');
+            if (!dateFrom || !dateTo) {
+                alert("يرجى تحديد تاريخ البداية والنهاية");
+                return;
+            }
 
-    if (!fromInput || !toInput) {
-        alert("يرجى اختيار الفترة الزمنية أولاً");
-        return;
-    }
-
-    // تنظيف الجدول وإظهار رسالة انتظار
-    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري جلب السجلات...</td></tr>';
-
-    try {
-        // جلب البيانات من كولكشن overtime
-        const querySnapshot = await getDocs(collection(db, "overtime"));
-        
-        let html = "";
-        let total = 0;
-        let count = 0;
-
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;"><div class="spinner" style="margin:10px auto; width:30px; height:30px; border-width:3px;"></div>جاري البحث...</td></tr>';
             
-            // مطابقة المدخلات الأصلية (تبدأ بحرف كبير كما في دالة الحفظ لديك)
-            let recordDate = data.Date || ""; // الحقل الأصلي Date
-            const name = data.EmployeeName || "غير معروف";
-            const hours = parseFloat(data.Hours || 0);
-            const dept = data.Dept || "-";
-            const reason = data.Reason || "-";
+            try {
+                // جلب بيانات الإضافي من قاعدة البيانات
+                const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'overtime');
+                const q = query(colRef); 
+                const querySnapshot = await getDocs(q);
+                
+                let totalHours = 0;
+                let rowsHtml = '';
+                let hasData = false;
 
-            // معالجة صيغة التاريخ لضمان المطابقة (تحويل / إلى - إن وجدت)
-            const formattedRecordDate = recordDate.replace(/\//g, '-');
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    // تصفية حسب التاريخ المحدد
+                    if (data.date >= dateFrom && data.date <= dateTo) {
+                        hasData = true;
+                        const emp = allEmployees.find(e => e.id === data.empDocId);
+                        const empName = emp ? emp.name : 'موظف غير موجود';
+                        const empDept = emp ? emp.dept : '---';
+                        
+                        totalHours += parseFloat(data.hours || 0);
 
-            // المقارنة بين تاريخ السجل والفترة المختارة
-            if (formattedRecordDate >= fromInput && formattedRecordDate <= toInput) {
-                total += hours;
-                count++;
-                html += `<tr>
-                    <td>${formattedRecordDate}</td>
-                    <td>${name}</td>
-                    <td>${dept}</td>
-                    <td><span class="status-badge badge-success">${hours} ساعة</span></td>
-                    <td>${reason}</td>
-                </tr>`;
+                        rowsHtml += `
+                            <tr>
+                                <td>${data.date}</td>
+                                <td style="font-weight:bold;">${empName}</td>
+                                <td>${empDept}</td>
+                                <td style="color:var(--success); font-weight:bold;">${data.hours}</td>
+                                <td>${data.reason || '---'}</td>
+                            </tr>
+                        `;
+                    }
+                });
+
+                if (hasData) {
+                    tbody.innerHTML = rowsHtml;
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">لا توجد بيانات في هذه الفترة</td></tr>';
+                }
+                
+                // تحديث إجمالي الساعات
+                totalEl.innerText = totalHours;
+
+            } catch (error) {
+                console.error("Error fetching overtime:", error);
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">حدث خطأ أثناء جلب البيانات</td></tr>';
             }
-        });
+        };
 
-        if (count === 0) {
-            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:orange;">لا توجد بيانات مطابقة لهذه الفترة (تأكد من اختيار السنة والشهر بشكل صحيح).</td></tr>';
-            totalDisplay.innerText = "0";
-        } else {
-            reportBody.innerHTML = html;
-            totalDisplay.innerText = total.toFixed(2);
-        }
-
-    } catch (error) {
-        console.error("Firebase Error:", error);
-        alert("فشل في جلب البيانات، يرجى التحقق من اتصال الإنترنت.");
-        reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">خطأ في الاتصال بقاعدة البيانات</td></tr>';
-    }
-};
-        window.downloadOvertimeCSV = function() {
-            const table = document.querySelector("#view-overtime table");
-            if (!table || table.rows.length <= 1) { alert("لا توجد بيانات"); return; }
-            let csv = "\uFEFF"; 
-            for (let i = 0; i < table.rows.length; i++) {
-                let row = [], cols = table.rows[i].querySelectorAll("td, th");
-                for (let j = 0; j < cols.length; j++) row.push('"' + cols[j].innerText + '"');
-                csv += row.join(",") + "\r\n";
+        // --- 2. دالة تحميل ملف الإكسل (إصلاح زر التحميل الأخضر) ---
+        window.downloadOvertimeCSV = () => {
+            const table = document.getElementById('overtime-report-body');
+            const rows = table.querySelectorAll('tr');
+            
+            if (rows.length === 0 || rows[0].innerText.includes('لا توجد بيانات') || rows[0].innerText.includes('يرجى اختيار')) {
+                alert("لا توجد بيانات لتصديرها، يرجى إجراء بحث أولاً.");
+                return;
             }
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+
+            let csvContent = "\uFEFF"; // لدعم اللغة العربية
+            csvContent += "التاريخ,الموظف,القسم,عدد الساعات,السبب\n";
+
+            rows.forEach(row => {
+                const cols = row.querySelectorAll('td');
+                if(cols.length > 1) { // التأكد أنها ليست رسالة خطأ
+                    let rowData = [];
+                    cols.forEach(col => rowData.push(`"${col.innerText}"`));
+                    csvContent += rowData.join(",") + "\n";
+                }
+            });
+
+            const encodedUri = encodeURI("data:text/csv;charset=utf-8," + csvContent);
             const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.setAttribute("download", "تقرير_الاضافي.csv");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "overtime_report.csv");
+            document.body.appendChild(link);
             link.click();
+            document.body.removeChild(link);
         };
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
