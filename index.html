@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/presto.app/">
     
-    <title>Presto 111OP</title>
+    <title>Presto 1111OP</title>
     
     <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -1797,79 +1797,79 @@ import {
 
 // يجب جعل الدوال عالمية (Global) ليراها المتصفح عند الضغط على الزر
 window.previewOvertimeData = async function() {
-    const fromDate = document.getElementById('overtime-from').value;
-    const toDate = document.getElementById('overtime-to').value;
+    const fromDateInput = document.getElementById('overtime-from').value; // صيغة YYYY-MM-DD
+    const toDateInput = document.getElementById('overtime-to').value;
     const reportBody = document.getElementById('overtime-report-body');
     const totalDisplay = document.getElementById('total-month-hours');
 
-    if (!fromDate || !toDate) {
+    if (!fromDateInput || !toDateInput) {
         alert("يرجى اختيار الفترة الزمنية أولاً");
         return;
     }
 
-    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري جلب البيانات...</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري جلب وتحليل البيانات...</td></tr>';
 
     try {
-        // استخدام متغير db الذي تم تعريفه عند تهيئة فايربيز
-        const q = query(collection(db, "overtime"), 
-            where("date", ">=", fromDate), 
-            where("date", "<=", toDate));
-            
-        const querySnapshot = await getDocs(q);
+        const querySnapshot = await getDocs(collection(db, "overtime"));
         let html = "";
         let totalHours = 0;
-
-        if (querySnapshot.empty) {
-            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">لا توجد سجلات لهذه الفترة</td></tr>';
-            totalDisplay.innerText = "0";
-            return;
-        }
+        let count = 0;
 
         querySnapshot.forEach((doc) => {
             const data = doc.data();
-            totalHours += parseFloat(data.hours || 0);
-            html += `
-                <tr>
-                    <td>${data.date}</td>
-                    <td>${data.empName}</td>
-                    <td>${data.dept || '-'}</td>
-                    <td><span class="status-badge badge-success">${data.hours} ساعة</span></td>
-                    <td>${data.reason || '-'}</td>
-                </tr>`;
+            
+            // 1. تنظيف التاريخ وتوحيده (تحويل / إلى -)
+            let rawDate = data.Date || data.date || "";
+            let recordDate = "";
+            
+            if (rawDate && rawDate.toDate) {
+                recordDate = rawDate.toDate().toISOString().split('T')[0];
+            } else {
+                // تحويل أي تاريخ مثل 2024/05/20 إلى 2024-05-20
+                recordDate = String(rawDate).replace(/\//g, '-').trim();
+                // إذا كان التاريخ مخزناً بصيغة DD-MM-YYYY، سنحتاج لقلبه (هنا نفترض YYYY-MM-DD)
+            }
+
+            // 2. المقارنة الصحيحة
+            if (recordDate >= fromDateInput && recordDate <= toDateInput) {
+                const h = parseFloat(data.Hours || data.hours || 0);
+                const name = data.EmployeeName || data.employeeName || data.empName || "غير معروف";
+                const dpt = data.Dept || data.dept || data.department || "-";
+                const rsn = data.Reason || data.reason || "-";
+
+                totalHours += h;
+                count++;
+                html += `
+                    <tr>
+                        <td>${recordDate}</td>
+                        <td>${name}</td>
+                        <td>${dpt}</td>
+                        <td><span class="status-badge badge-success">${h} ساعة</span></td>
+                        <td>${rsn}</td>
+                    </tr>`;
+            }
         });
 
-        reportBody.innerHTML = html;
-        totalDisplay.innerText = totalHours.toFixed(2);
+        if (count === 0) {
+            reportBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">
+                لا توجد بيانات مطابقة.<br>
+                <small style="color:gray;">تأكد أن التاريخ في Firebase مخزن بصيغة (السنة-الشهر-اليوم)</small>
+            </td></tr>`;
+            totalDisplay.innerText = "0";
+        } else {
+            reportBody.innerHTML = html;
+            totalDisplay.innerText = totalHours.toFixed(2);
+        }
 
     } catch (error) {
         console.error("Firebase Error:", error);
-        alert("حدث خطأ في الوصول لقاعدة البيانات. تأكد من إعدادات الحماية (Rules)");
+        alert("خطأ: " + error.message);
     }
-};
-
-window.downloadOvertimeCSV = function() {
-    const table = document.querySelector("#view-overtime table");
-    if (!table || table.rows.length <= 1) {
-        alert("لا توجد بيانات لتحميلها");
-        return;
-    }
-
-    let csv = "\uFEFF"; 
-    for (let i = 0; i < table.rows.length; i++) {
-        let row = [], cols = table.rows[i].querySelectorAll("td, th");
-        for (let j = 0; j < cols.length; j++) row.push('"' + cols[j].innerText + '"');
-        csv += row.join(",") + "\r\n";
-    }
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.setAttribute("download", `تقرير_الاضافي.csv`);
-    link.click();
 };
     </script>
 </body>
 </html>
+
 
 
 
