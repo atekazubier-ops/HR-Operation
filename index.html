@@ -1791,26 +1791,24 @@
             drawTableSection('calendar-table-evening', eveningEmployees);
         };
 
-     window.previewOvertimeData = async function() {
+   window.previewOvertimeData = async function() {
     const fromInput = document.getElementById('overtime-from').value;
     const toInput = document.getElementById('overtime-to').value;
     const reportBody = document.getElementById('overtime-report-body');
     const totalDisplay = document.getElementById('total-month-hours');
 
     if (!fromInput || !toInput) {
-        alert("يرجى تحديد التواريخ أولاً");
+        alert("يرجى اختيار الفترة الزمنية أولاً");
         return;
     }
 
-    // تصفير الجدول فوراً لمنع التعليق البصري
-    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري البحث...</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري جلب البيانات وتحليل التنسيق...</td></tr>';
 
     try {
-        // سحب البيانات من كولكشن overtime
         const querySnapshot = await getDocs(collection(db, "overtime"));
         
         if (querySnapshot.empty) {
-            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">تنبيه: لا توجد سجلات نهائياً في مجموعة overtime</td></tr>';
+            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">قاعدة البيانات فارغة تماماً (Collection Empty)</td></tr>';
             return;
         }
 
@@ -1821,41 +1819,55 @@
         querySnapshot.forEach((doc) => {
             const data = doc.data();
             
-            // معالجة مرنة للتاريخ
+            // 1. محاولة استخراج التاريخ مهما كان اسم الحقل (Date أو date)
             let rawDate = data.Date || data.date || "";
-            let recordDate = (rawDate && rawDate.toDate) ? rawDate.toDate().toISOString().split('T')[0] : String(rawDate).replace(/\//g, '-').trim();
+            let recordDate = "";
 
-            // الفلترة
+            if (rawDate && rawDate.toDate) {
+                recordDate = rawDate.toDate().toISOString().split('T')[0];
+            } else {
+                // تحويل أي تاريخ نصي (مثل 2024/05/20) إلى صيغة المقارنة (2024-05-20)
+                recordDate = String(rawDate).replace(/\//g, '-').trim();
+                
+                // إذا كان التاريخ مخزناً كـ يوم-شهر-سنة، نقوم بقلبه
+                const parts = recordDate.split('-');
+                if (parts.length === 3 && parts[0].length === 2) {
+                    recordDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                }
+            }
+
+            // 2. محاولة استخراج الاسم (EmployeeName أو empName)
+            const name = data.EmployeeName || data.empName || data.EmpName || "غير معروف";
+            const hours = parseFloat(data.Hours || data.hours || 0);
+
+            // 3. الفلترة والمقارنة
             if (recordDate >= fromInput && recordDate <= toInput) {
-                const h = parseFloat(data.Hours || data.hours || 0);
-                const name = data.EmployeeName || data.empName || "موظف";
-                html += `<tr>
-                    <td>${recordDate}</td>
-                    <td>${name}</td>
-                    <td>${data.Dept || data.dept || "-"}</td>
-                    <td><span class="status-badge badge-success">${h} ساعة</span></td>
-                    <td>${data.Reason || data.reason || "-"}</td>
-                </tr>`;
-                total += h;
+                total += hours;
                 count++;
+                html += `
+                    <tr>
+                        <td>${recordDate}</td>
+                        <td>${name}</td>
+                        <td>${data.Dept || data.dept || '-'}</td>
+                        <td><span class="status-badge badge-success">${hours} ساعة</span></td>
+                        <td>${data.Reason || data.reason || '-'}</td>
+                    </tr>`;
             }
         });
 
         if (count === 0) {
-            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">توجد بيانات في القاعدة ولكن لا تطابق التواريخ المختارة.</td></tr>';
+            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:orange;">تم العثور على بيانات ولكن لا تقع ضمن التواريخ المختارة.</td></tr>';
         } else {
             reportBody.innerHTML = html;
         }
         totalDisplay.innerText = total.toFixed(2);
 
     } catch (error) {
-        console.error("Firebase Error:", error);
-        // هذا التنبيه سيظهر إذا كانت المشكلة في الـ Rules
-        alert("فشل الوصول: تأكد من ضبط Rules في Firebase على allow read: if true;");
-        reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">خطأ في الصلاحيات (Firebase Rules)</td></tr>';
+        console.error("Detailed Error:", error);
+        alert("حدث خطأ تقني، تأكد من الكونسول (F12)");
+        reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">خطأ في جلب البيانات</td></tr>';
     }
 };
-
         window.downloadOvertimeCSV = function() {
             const table = document.querySelector("#view-overtime table");
             if (!table || table.rows.length <= 1) { alert("لا توجد بيانات"); return; }
@@ -1874,6 +1886,7 @@
     </script>
 </body>
 </html>
+
 
 
 
