@@ -1790,120 +1790,71 @@
             drawTableSection('calendar-table-morning', morningEmployees);
             drawTableSection('calendar-table-evening', eveningEmployees);
         };
-// تأكد أن هذه السطور موجودة في أعلى السكريبت
-import { 
-    getFirestore, collection, query, where, getDocs 
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// يجب جعل الدوال عالمية (Global) ليراها المتصفح عند الضغط على الزر
-بما أن الصفحة "علقت" أو لم تعد تستجيب، فهذا يعني أن هناك خطأً تقنياً بسيطاً حدث أثناء دمج الأكواد (مثل نقص في إغلاق قوس أو علامة تنصيص).
+     window.previewOvertimeData = async function() {
+    const fromInput = document.getElementById('overtime-from').value;
+    const toInput = document.getElementById('overtime-to').value;
+    const reportBody = document.getElementById('overtime-report-body');
+    const totalDisplay = document.getElementById('total-month-hours');
 
-لقد قمت بإصلاح الملف بالكامل ودمج دالة "البحث الشامل" التي تعالج كل مشاكل التواريخ (سواء كانت بالفواصل / أو الشرطات -) ومشاكل الحروف الكبيرة والصغيرة في مسميات الحقول.
+    if (!fromInput || !toInput) {
+        alert("يرجى تحديد التواريخ أولاً");
+        return;
+    }
 
-إليك الكود النهائي المصلح (انسخ هذا الجزء وضعه في نهاية الملف بدلاً من القديم):
-JavaScript
-        // ==========================================
-        // الدوال المصلحة للإضافي - نسخة الحماية القصوى
-        // ==========================================
+    // تصفير الجدول فوراً لمنع التعليق البصري
+    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري البحث...</td></tr>';
 
-       // استبدل الدالة previewOvertimeData في ملفك بهذا الكود المطور جداً
-بما أننا وصلنا لهذه المرحلة ولا تزال البيانات لا تظهر، فهذا يعني أننا أمام "لغز" تقني بسيط. لقد قمت بمراجعة ملفك index (78).html بالكامل، والكود البرمجي سليم جداً، لكن الصفحة قد "تعلق" لسببين: إما حجم البيانات كبير، أو أن هناك "تعارض" (Conflict) في النسخ المخزنة في متصفحك.
+    try {
+        // سحب البيانات من كولكشن overtime
+        const querySnapshot = await getDocs(collection(db, "overtime"));
+        
+        if (querySnapshot.empty) {
+            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">تنبيه: لا توجد سجلات نهائياً في مجموعة overtime</td></tr>';
+            return;
+        }
 
-إليك "الحل الذري". سأعطيك ملفاً كاملاً يحتوي على "دالة التشخيص الذاتي". بمجرد ضغطك على زر البحث، سيخبرك الكود في نافذة منبثقة (Alert) بالضبط ماذا وجد في Firebase وما هو العائق.
+        let html = "";
+        let total = 0;
+        let count = 0;
 
-الخطوات النهائية لفك "التعليق":
-افتح ملفك الحالي واذهب للسطر 957 (بداية كود الإضافي).
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            
+            // معالجة مرنة للتاريخ
+            let rawDate = data.Date || data.date || "";
+            let recordDate = (rawDate && rawDate.toDate) ? rawDate.toDate().toISOString().split('T')[0] : String(rawDate).replace(/\//g, '-').trim();
 
-قم بحذف كل شيء من هناك حتى نهاية الملف.
-
-ضع هذا الكود مكانه (هذا الكود مصمم ليعمل مهما كان نوع التاريخ في قاعدتك):
-
-JavaScript
-        // ==========================================
-        // نسخة الإصلاح النهائي والتشخيص التلقائي
-        // ==========================================
-
-        window.previewOvertimeData = async function() {
-            const fromInput = document.getElementById('overtime-from').value;
-            const toInput = document.getElementById('overtime-to').value;
-            const reportBody = document.getElementById('overtime-report-body');
-            const totalDisplay = document.getElementById('total-month-hours');
-
-            if (!fromInput || !toInput) {
-                alert("يرجى تحديد التواريخ أولاً");
-                return;
+            // الفلترة
+            if (recordDate >= fromInput && recordDate <= toInput) {
+                const h = parseFloat(data.Hours || data.hours || 0);
+                const name = data.EmployeeName || data.empName || "موظف";
+                html += `<tr>
+                    <td>${recordDate}</td>
+                    <td>${name}</td>
+                    <td>${data.Dept || data.dept || "-"}</td>
+                    <td><span class="status-badge badge-success">${h} ساعة</span></td>
+                    <td>${data.Reason || data.reason || "-"}</td>
+                </tr>`;
+                total += h;
+                count++;
             }
+        });
 
-            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري الاتصال بـ Firebase وفحص السجلات...</td></tr>';
+        if (count === 0) {
+            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">توجد بيانات في القاعدة ولكن لا تطابق التواريخ المختارة.</td></tr>';
+        } else {
+            reportBody.innerHTML = html;
+        }
+        totalDisplay.innerText = total.toFixed(2);
 
-            try {
-                const querySnapshot = await getDocs(collection(db, "overtime"));
-                
-                if (querySnapshot.empty) {
-                    alert("تنبيه: الكولكشن (overtime) فارغة تماماً في قاعدة بياناتك!");
-                    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">لا توجد أي بيانات مسجلة في القاعدة</td></tr>';
-                    return;
-                }
-
-                let html = "";
-                let total = 0;
-                let foundCount = 0;
-                let diagnosticSample = "";
-
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    let rawDate = data.Date || data.date || "";
-                    let recordDate = "";
-
-                    // تحويل التاريخ لصيغة معيارية للمقارنة
-                    if (rawDate && rawDate.toDate) {
-                        recordDate = rawDate.toDate().toISOString().split('T')[0];
-                    } else {
-                        // تنظيف التاريخ من / وتحويله لـ -
-                        recordDate = String(rawDate).replace(/\//g, '-').trim();
-                        // إذا كان التاريخ مقلوباً (يوم-شهر-سنة) نقوم بإصلاحه
-                        const parts = recordDate.split('-');
-                        if (parts[0].length === 2 && parts[2].length === 4) {
-                            recordDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                        }
-                    }
-
-                    // تخزين عينة للتشخيص
-                    if (!diagnosticSample) diagnosticSample = recordDate;
-
-                    if (recordDate >= fromInput && recordDate <= toInput) {
-                        const h = parseFloat(data.Hours || data.hours || 0);
-                        const name = data.EmployeeName || data.empName || "موظف";
-                        const dpt = data.Dept || data.dept || "-";
-                        const rsn = data.Reason || data.reason || "-";
-
-                        total += h;
-                        foundCount++;
-                        html += `<tr>
-                            <td>${recordDate}</td>
-                            <td>${name}</td>
-                            <td>${dpt}</td>
-                            <td><span class="status-badge badge-success">${h} ساعة</span></td>
-                            <td>${rsn}</td>
-                        </tr>`;
-                    }
-                });
-
-                if (foundCount === 0) {
-                    reportBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">
-                        لم نجد سجلات تطابق التاريخ.<br>
-                        <small style="color:blue;">أول تاريخ وجدناه في القاعدة هو: (${diagnosticSample})</small>
-                    </td></tr>`;
-                } else {
-                    reportBody.innerHTML = html;
-                }
-                totalDisplay.innerText = total.toFixed(2);
-
-            } catch (error) {
-                console.error("Firebase Error:", error);
-                alert("خطأ في الاتصال: تأكد من تفعيل Rules في Firebase إلى (allow read: if true)");
-            }
-        };
+    } catch (error) {
+        console.error("Firebase Error:", error);
+        // هذا التنبيه سيظهر إذا كانت المشكلة في الـ Rules
+        alert("فشل الوصول: تأكد من ضبط Rules في Firebase على allow read: if true;");
+        reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">خطأ في الصلاحيات (Firebase Rules)</td></tr>';
+    }
+};
 
         window.downloadOvertimeCSV = function() {
             const table = document.querySelector("#view-overtime table");
@@ -1923,6 +1874,7 @@ JavaScript
     </script>
 </body>
 </html>
+
 
 
 
