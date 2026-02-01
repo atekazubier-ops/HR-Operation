@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/presto.app/">
     
-    <title>Presto 1OP</title>
+    <title>Presto OP</title>
     
     <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -608,7 +608,7 @@
 
 // 1. دالة عرض البيانات مع ربطها بـ window لضمان عمل زر "بحث"
 window.previewOvertimeData = async function() {
-    const fromDateInput = document.getElementById('overtime-from').value; // يأتي بصيغة YYYY-MM-DD
+    const fromDateInput = document.getElementById('overtime-from').value; 
     const toDateInput = document.getElementById('overtime-to').value;
     const reportBody = document.getElementById('overtime-report-body');
     const totalDisplay = document.getElementById('total-month-hours');
@@ -618,7 +618,7 @@ window.previewOvertimeData = async function() {
         return;
     }
 
-    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري البحث في قاعدة البيانات...</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري فحص وتدقيق البيانات...</td></tr>';
 
     try {
         const querySnapshot = await getDocs(collection(db, "overtime"));
@@ -629,11 +629,18 @@ window.previewOvertimeData = async function() {
 
         querySnapshot.forEach((doc) => {
             const data = doc.data();
-            
-            // 1. تنظيف التاريخ من أي مسافات زائدة وتحويله لنص
-            let recordDate = String(data.date || data.Date || "").trim();
-            
-            // 2. المقارنة (تأكد أن التاريخ في Firebase مخزن بصيغة 2024-05-20)
+            let recordDate = "";
+
+            // معالجة التاريخ إذا كان Timestamp أو String
+            if (data.date && typeof data.date.toDate === 'function') {
+                // إذا كان من نوع Firebase Timestamp
+                recordDate = data.date.toDate().toISOString().split('T')[0];
+            } else {
+                // إذا كان نص عادي
+                recordDate = String(data.date || data.Date || "").trim();
+            }
+
+            // التأكد من تنسيق المقارنة
             if (recordDate && recordDate >= fromDateInput && recordDate <= toDateInput) {
                 const h = parseFloat(data.hours || data.Hours || 0);
                 const name = data.empName || data.EmpName || 'غير معروف';
@@ -654,9 +661,11 @@ window.previewOvertimeData = async function() {
         });
 
         if (count === 0) {
+            // رسالة مساعدة في حال عدم وجود نتائج
             reportBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">
-                لا توجد سجلات مطابقة للفترة المختارة.<br>
-                <small style="color:gray;">(تأكد أن التاريخ في Firebase مخزن بصيغة YYYY-MM-DD)</small>
+                <i class="fas fa-exclamation-triangle" style="color: #ffb822; font-size: 20px;"></i><br>
+                لم يتم العثور على سجلات تطابق تاريخ <b>${fromDateInput}</b> إلى <b>${toDateInput}</b>.<br>
+                تأكد من وجود بيانات في كولكشن (overtime) بنفس هذه التواريخ.
             </td></tr>`;
             totalDisplay.innerText = "0";
         } else {
@@ -666,7 +675,7 @@ window.previewOvertimeData = async function() {
 
     } catch (error) {
         console.error("Firebase Error:", error);
-        alert("حدث خطأ أثناء جلب البيانات.");
+        alert("حدث خطأ تقني: " + error.message);
     }
 };
 // 2. دالة تحميل الملف مع ربطها بـ window لضمان عمل زر "تحميل"
@@ -1944,6 +1953,7 @@ async function previewOvertimeData() {
     </script>
 </body>
 </html>
+
 
 
 
