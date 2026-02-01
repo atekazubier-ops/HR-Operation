@@ -1798,52 +1798,59 @@ window.previewOvertimeData = async function() {
     const totalDisplay = document.getElementById('total-month-hours');
 
     if (!fromInput || !toInput) {
-        alert("يرجى اختيار التاريخ أولاً");
+        alert("يرجى اختيار الفترة الزمنية أولاً");
         return;
     }
 
-    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري فحص البيانات...</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري استخراج وتحليل البيانات...</td></tr>';
 
     try {
         const querySnapshot = await getDocs(collection(db, "overtime"));
         
         let html = "";
         let total = 0;
-        let foundCount = 0;
+        let count = 0;
 
         querySnapshot.forEach((doc) => {
             const data = doc.data();
             
-            // 1. معالجة التاريخ (تغطية Date و date وتنسيقات / أو -)
-            let rawDate = data.Date || data.date || "";
+            // --- معالجة التاريخ الذكية ---
+            let rawDate = data.Date || data.date || ""; 
             let recordDate = "";
-            if (rawDate && rawDate.toDate) {
+
+            if (rawDate && rawDate.toDate) { 
+                // إذا كان مخزناً كـ Timestamp
                 recordDate = rawDate.toDate().toISOString().split('T')[0];
             } else {
+                // إذا كان مخزناً كنص (تحويل السلاش لشرطة)
                 recordDate = String(rawDate).replace(/\//g, '-').trim();
-                const parts = recordDate.split('-');
-                if (parts.length === 3 && parts[0].length === 2) recordDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                // إصلاح التاريخ المقلوب (يوم-شهر-سنة)
+                const p = recordDate.split('-');
+                if (p.length === 3 && p[0].length === 2) {
+                    recordDate = `${p[2]}-${p[1]}-${p[0]}`;
+                }
             }
 
-            // 2. معالجة الساعات والاسم (تغطية كل المسميات المحتملة)
-            const h = parseFloat(data.Hours || data.hours || 0);
-            const name = data.EmployeeName || data.employeeName || data.empName || "غير معروف";
-
+            // --- الفلترة والمقارنة ---
             if (recordDate >= fromInput && recordDate <= toInput) {
+                const h = parseFloat(data.Hours || data.hours || 0);
+                const name = data.EmployeeName || data.employeeName || data.empName || "موظف";
+                const dpt = data.Dept || data.dept || "-";
+
                 total += h;
-                foundCount++;
+                count++;
                 html += `<tr>
                     <td>${recordDate}</td>
                     <td>${name}</td>
-                    <td>${data.Dept || data.dept || "-"}</td>
+                    <td>${dpt}</td>
                     <td><span class="status-badge badge-success">${h} ساعة</span></td>
                     <td>${data.Reason || data.reason || "-"}</td>
                 </tr>`;
             }
         });
 
-        if (foundCount === 0) {
-            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">لم يتم العثور على سجلات مطابقة.</td></tr>';
+        if (count === 0) {
+            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:orange;">تم الاتصال بنجاح ولكن التواريخ في القاعدة لا تطابق بحثك.</td></tr>';
         } else {
             reportBody.innerHTML = html;
         }
@@ -1851,7 +1858,7 @@ window.previewOvertimeData = async function() {
 
     } catch (error) {
         console.error("Error Details:", error);
-        alert("خطأ: " + error.message);
+        alert("فشل الاتصال: تأكد من اسم الكولكشن (overtime) في الفايربيز");
     }
 };
         window.downloadOvertimeCSV = function() {
@@ -1872,6 +1879,7 @@ window.previewOvertimeData = async function() {
     </script>
 </body>
 </html>
+
 
 
 
