@@ -618,28 +618,33 @@ window.previewOvertimeData = async function() {
         return;
     }
 
-    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري البحث والتدقيق...</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري جلب البيانات...</td></tr>';
 
     try {
+        // جلب البيانات من كولكشن overtime
         const querySnapshot = await getDocs(collection(db, "overtime"));
+        
         let html = "";
         let totalHours = 0;
         let count = 0;
 
         querySnapshot.forEach((doc) => {
             const data = doc.data();
-            let recordDate = "";
-
-            // ذكاء اصطناعي لتحويل التاريخ مهما كان نوعه في Firebase
-            if (data.date && typeof data.date.toDate === 'function') {
-                recordDate = data.date.toDate().toISOString().split('T')[0];
+            
+            // --- حل مشكلة الحروف الكبيرة والصغيرة ---
+            // نبحث عن التاريخ في 'date' أو 'Date'
+            let recordDate = data.date || data.Date || "";
+            
+            // تحويل التاريخ لنص وتوحيد التنسيق (YYYY-MM-DD)
+            if (recordDate && typeof recordDate.toDate === 'function') {
+                recordDate = recordDate.toDate().toISOString().split('T')[0];
             } else {
-                recordDate = String(data.date || data.Date || "").trim();
+                recordDate = String(recordDate).trim();
             }
 
-            // التأكد من مطابقة الصيغة YYYY-MM-DD
+            // تنفيذ المقارنة
             if (recordDate >= fromDateInput && recordDate <= toDateInput) {
-                // قراءة الحقول سواء بدأت بحرف كبير أو صغير
+                // قراءة الحقول بمرونة (كبير أو صغير)
                 const h = parseFloat(data.hours || data.Hours || 0);
                 const name = data.empName || data.EmpName || data.employeeName || 'غير معروف';
                 const dpt = data.dept || data.Dept || '-';
@@ -659,10 +664,7 @@ window.previewOvertimeData = async function() {
         });
 
         if (count === 0) {
-            reportBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">
-                لا توجد بيانات مطابقة للفترة المختارة.<br>
-                <small style="color:gray;">تأكد أن التاريخ في Firebase مخزن بصيغة السنة-الشهر-اليوم</small>
-            </td></tr>`;
+            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">لا توجد بيانات مسجلة لهذه الفترة. تأكد من تطابق التواريخ.</td></tr>';
             totalDisplay.innerText = "0";
         } else {
             reportBody.innerHTML = html;
@@ -671,7 +673,7 @@ window.previewOvertimeData = async function() {
 
     } catch (error) {
         console.error("Firebase Error:", error);
-        alert("خطأ في الاتصال بقاعدة البيانات");
+        alert("حدث خطأ في الاتصال: " + error.message);
     }
 };
 // 2. دالة تحميل الملف مع ربطها بـ window لضمان عمل زر "تحميل"
@@ -1949,6 +1951,7 @@ async function previewOvertimeData() {
     </script>
 </body>
 </html>
+
 
 
 
