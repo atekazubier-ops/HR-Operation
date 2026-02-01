@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/presto.app/">
     
-    <title>Presto 111OP</title>
+    <title>Presto 11OP</title>
     
     <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -1802,11 +1802,11 @@ window.previewOvertimeData = async function() {
         return;
     }
 
-    // تصفير الجدول فوراً لبدء عملية البحث
-    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري البحث في السجلات...</td></tr>';
+    // تنظيف الجدول وإظهار رسالة انتظار
+    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري جلب السجلات...</td></tr>';
 
     try {
-        // التأكد من جلب البيانات من نفس الكولكشن المستخدم في الإدخال
+        // جلب البيانات من كولكشن overtime
         const querySnapshot = await getDocs(collection(db, "overtime"));
         
         let html = "";
@@ -1816,37 +1816,32 @@ window.previewOvertimeData = async function() {
         querySnapshot.forEach((doc) => {
             const data = doc.data();
             
-            // 1. مطابقة التاريخ: كود الإدخال يرسل الحقل باسم "Date" 
-            // نقوم بتوحيد الصيغة للمقارنة مع المدخلات (YYYY-MM-DD)
-            let recordDate = data.Date || ""; 
-            if (recordDate.includes('/')) {
-                recordDate = recordDate.replace(/\//g, '-');
-            }
-
-            // 2. مطابقة مسميات الحقول تماماً كما في دالة submitOvertime
-            // الاسم: EmployeeName ، الساعات: Hours ، القسم: Dept ، السبب: Reason
-            const h = parseFloat(data.Hours || 0);
+            // مطابقة المدخلات الأصلية (تبدأ بحرف كبير كما في دالة الحفظ لديك)
+            let recordDate = data.Date || ""; // الحقل الأصلي Date
             const name = data.EmployeeName || "غير معروف";
+            const hours = parseFloat(data.Hours || 0);
             const dept = data.Dept || "-";
             const reason = data.Reason || "-";
 
-            // 3. الفلترة حسب النطاق الزمني المختار
-            if (recordDate >= fromInput && recordDate <= toInput) {
-                total += h;
+            // معالجة صيغة التاريخ لضمان المطابقة (تحويل / إلى - إن وجدت)
+            const formattedRecordDate = recordDate.replace(/\//g, '-');
+
+            // المقارنة بين تاريخ السجل والفترة المختارة
+            if (formattedRecordDate >= fromInput && formattedRecordDate <= toInput) {
+                total += hours;
                 count++;
                 html += `<tr>
-                    <td>${recordDate}</td>
+                    <td>${formattedRecordDate}</td>
                     <td>${name}</td>
                     <td>${dept}</td>
-                    <td><span class="status-badge badge-success">${h} ساعة</span></td>
+                    <td><span class="status-badge badge-success">${hours} ساعة</span></td>
                     <td>${reason}</td>
                 </tr>`;
             }
         });
 
-        // تحديث الواجهة بناءً على النتائج
         if (count === 0) {
-            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:orange;">تم الاتصال بالقاعدة بنجاح، ولكن لا توجد بيانات مطابقة لهذه التواريخ.</td></tr>';
+            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:orange;">لا توجد بيانات مطابقة لهذه الفترة (تأكد من اختيار السنة والشهر بشكل صحيح).</td></tr>';
             totalDisplay.innerText = "0";
         } else {
             reportBody.innerHTML = html;
@@ -1854,9 +1849,9 @@ window.previewOvertimeData = async function() {
         }
 
     } catch (error) {
-        console.error("Firebase Read Error:", error);
-        alert("حدث خطأ أثناء جلب البيانات. تأكد من أنك متصل بالإنترنت.");
-        reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">فشل جلب البيانات من الخادم</td></tr>';
+        console.error("Firebase Error:", error);
+        alert("فشل في جلب البيانات، يرجى التحقق من اتصال الإنترنت.");
+        reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">خطأ في الاتصال بقاعدة البيانات</td></tr>';
     }
 };
         window.downloadOvertimeCSV = function() {
@@ -1877,6 +1872,7 @@ window.previewOvertimeData = async function() {
     </script>
 </body>
 </html>
+
 
 
 
