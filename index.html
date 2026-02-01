@@ -1791,7 +1791,8 @@
             drawTableSection('calendar-table-evening', eveningEmployees);
         };
 
-const fromInput = document.getElementById('overtime-from').value;
+window.previewOvertimeData = async function() {
+    const fromInput = document.getElementById('overtime-from').value;
     const toInput = document.getElementById('overtime-to').value;
     const reportBody = document.getElementById('overtime-report-body');
     const totalDisplay = document.getElementById('total-month-hours');
@@ -1801,7 +1802,7 @@ const fromInput = document.getElementById('overtime-from').value;
         return;
     }
 
-    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري استخراج وتحليل البيانات...</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري البحث والتحليل...</td></tr>';
 
     try {
         const querySnapshot = await getDocs(collection(db, "overtime"));
@@ -1813,35 +1814,30 @@ const fromInput = document.getElementById('overtime-from').value;
         querySnapshot.forEach((doc) => {
             const data = doc.data();
             
-            // --- معالجة التاريخ الذكية ---
-            let rawDate = data.Date || data.date || ""; 
+            // 1. معالجة التاريخ الذكية (تحويل أي صيغة إلى YYYY-MM-DD)
+            let rawDate = data.Date || data.date || data.DATE || "";
             let recordDate = "";
 
             if (rawDate && rawDate.toDate) { 
-                // إذا كان مخزناً كـ Timestamp
                 recordDate = rawDate.toDate().toISOString().split('T')[0];
             } else {
-                // إذا كان مخزناً كنص (تحويل السلاش لشرطة)
                 recordDate = String(rawDate).replace(/\//g, '-').trim();
-                // إصلاح التاريخ المقلوب (يوم-شهر-سنة)
                 const p = recordDate.split('-');
-                if (p.length === 3 && p[0].length === 2) {
-                    recordDate = `${p[2]}-${p[1]}-${p[0]}`;
-                }
+                if (p.length === 3 && p[0].length === 2) recordDate = `${p[2]}-${p[1]}-${p[0]}`;
             }
 
-            // --- الفلترة والمقارنة ---
-            if (recordDate >= fromInput && recordDate <= toInput) {
-                const h = parseFloat(data.Hours || data.hours || 0);
-                const name = data.EmployeeName || data.employeeName || data.empName || "موظف";
-                const dpt = data.Dept || data.dept || "-";
+            // 2. محاولة جلب الساعات والاسم مهما كان المسمى
+            const h = parseFloat(data.Hours || data.hours || data.totalHours || 0);
+            const name = data.EmployeeName || data.employeeName || data.empName || "موظف";
 
+            // 3. المقارنة والعرض
+            if (recordDate >= fromInput && recordDate <= toInput) {
                 total += h;
                 count++;
                 html += `<tr>
                     <td>${recordDate}</td>
                     <td>${name}</td>
-                    <td>${dpt}</td>
+                    <td>${data.Dept || data.dept || "-"}</td>
                     <td><span class="status-badge badge-success">${h} ساعة</span></td>
                     <td>${data.Reason || data.reason || "-"}</td>
                 </tr>`;
@@ -1849,7 +1845,7 @@ const fromInput = document.getElementById('overtime-from').value;
         });
 
         if (count === 0) {
-            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:orange;">تم الاتصال بنجاح ولكن التواريخ في القاعدة لا تطابق بحثك.</td></tr>';
+            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:orange;">وجدنا سجلات في القاعدة ولكنها خارج نطاق التاريخ المختار.</td></tr>';
         } else {
             reportBody.innerHTML = html;
         }
@@ -1878,6 +1874,7 @@ const fromInput = document.getElementById('overtime-from').value;
     </script>
 </body>
 </html>
+
 
 
 
