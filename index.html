@@ -1818,18 +1818,25 @@ window.previewOvertimeData = async function() {
         return;
     }
 
-    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري فحص قاعدة البيانات...</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري البحث...</td></tr>';
 
     try {
         const querySnapshot = await getDocs(collection(db, "overtime"));
+        
+        // سطر كشف الحقيقة: سيطبع في المتصفح (F12) كم سجل وجد
+        console.log("عدد السجلات المكتشفة في القاعدة:", querySnapshot.size);
+
+        if (querySnapshot.empty) {
+            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">قاعدة البيانات فارغة تماماً أو الوصول مرفوض (Permissions)</td></tr>';
+            return;
+        }
+
         let html = "";
         let total = 0;
         let count = 0;
 
         querySnapshot.forEach((doc) => {
             const data = doc.data();
-            
-            // 1. معالجة مرنة جداً للتاريخ
             let rawDate = data.Date || data.date || "";
             let recordDate = "";
 
@@ -1837,7 +1844,6 @@ window.previewOvertimeData = async function() {
                 recordDate = rawDate.toDate().toISOString().split('T')[0];
             } else {
                 let dStr = String(rawDate).replace(/\//g, '-').trim();
-                // إذا كان التاريخ مخزناً DD-MM-YYYY نقوم بقلبه ليصبح YYYY-MM-DD
                 if (dStr.includes('-') && dStr.split('-')[0].length === 2) {
                     const parts = dStr.split('-');
                     recordDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
@@ -1846,7 +1852,6 @@ window.previewOvertimeData = async function() {
                 }
             }
 
-            // 2. الفلترة (مع التأكد من صحة التواريخ)
             if (recordDate >= fromInput && recordDate <= toInput) {
                 const hours = parseFloat(data.Hours || data.hours || 0);
                 const name = data.EmployeeName || data.empName || "موظف";
@@ -1855,27 +1860,16 @@ window.previewOvertimeData = async function() {
 
                 total += hours;
                 count++;
-                html += `<tr>
-                    <td>${recordDate}</td>
-                    <td>${name}</td>
-                    <td>${dept}</td>
-                    <td><span class="status-badge badge-success">${hours} ساعة</span></td>
-                    <td>${reason}</td>
-                </tr>`;
+                html += `<tr><td>${recordDate}</td><td>${name}</td><td>${dept}</td><td>${hours} ساعة</td><td>${reason}</td></tr>`;
             }
         });
 
-        if (count === 0) {
-            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:orange;">لم نجد بيانات تطابق هذه الفترة. تأكد أنك سجلت الإضافي مسبقاً بنفس هذه التواريخ.</td></tr>';
-            totalDisplay.innerText = "0";
-        } else {
-            reportBody.innerHTML = html;
-            totalDisplay.innerText = total.toFixed(2);
-        }
+        reportBody.innerHTML = count > 0 ? html : '<tr><td colspan="5" style="text-align:center;">لا توجد بيانات مطابقة لهذه التواريخ</td></tr>';
+        totalDisplay.innerText = total.toFixed(2);
 
     } catch (error) {
         console.error("Firebase Error:", error);
-        alert("فشل في جلب البيانات: تأكد من إعدادات الحماية Rules في Firebase");
+        alert("خطأ في الاتصال: راجع إعدادات الحماية (Rules) في Firebase");
     }
 };
 
@@ -1900,6 +1894,7 @@ window.previewOvertimeData = async function() {
     </script>
 </body>
 </html>
+
 
 
 
