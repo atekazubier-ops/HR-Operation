@@ -1791,81 +1791,67 @@
             drawTableSection('calendar-table-evening', eveningEmployees);
         };
 
-   window.previewOvertimeData = async function() {
+window.previewOvertimeData = async function() {
     const fromInput = document.getElementById('overtime-from').value;
     const toInput = document.getElementById('overtime-to').value;
     const reportBody = document.getElementById('overtime-report-body');
     const totalDisplay = document.getElementById('total-month-hours');
 
     if (!fromInput || !toInput) {
-        alert("يرجى اختيار الفترة الزمنية أولاً");
+        alert("يرجى اختيار التاريخ أولاً");
         return;
     }
 
-    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري جلب البيانات وتحليل التنسيق...</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري فحص البيانات...</td></tr>';
 
     try {
         const querySnapshot = await getDocs(collection(db, "overtime"));
         
-        if (querySnapshot.empty) {
-            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">قاعدة البيانات فارغة تماماً (Collection Empty)</td></tr>';
-            return;
-        }
-
         let html = "";
         let total = 0;
-        let count = 0;
+        let foundCount = 0;
 
         querySnapshot.forEach((doc) => {
             const data = doc.data();
             
-            // 1. محاولة استخراج التاريخ مهما كان اسم الحقل (Date أو date)
+            // 1. معالجة التاريخ (تغطية Date و date وتنسيقات / أو -)
             let rawDate = data.Date || data.date || "";
             let recordDate = "";
-
             if (rawDate && rawDate.toDate) {
                 recordDate = rawDate.toDate().toISOString().split('T')[0];
             } else {
-                // تحويل أي تاريخ نصي (مثل 2024/05/20) إلى صيغة المقارنة (2024-05-20)
                 recordDate = String(rawDate).replace(/\//g, '-').trim();
-                
-                // إذا كان التاريخ مخزناً كـ يوم-شهر-سنة، نقوم بقلبه
                 const parts = recordDate.split('-');
-                if (parts.length === 3 && parts[0].length === 2) {
-                    recordDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                }
+                if (parts.length === 3 && parts[0].length === 2) recordDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
             }
 
-            // 2. محاولة استخراج الاسم (EmployeeName أو empName)
-            const name = data.EmployeeName || data.empName || data.EmpName || "غير معروف";
-            const hours = parseFloat(data.Hours || data.hours || 0);
+            // 2. معالجة الساعات والاسم (تغطية كل المسميات المحتملة)
+            const h = parseFloat(data.Hours || data.hours || 0);
+            const name = data.EmployeeName || data.employeeName || data.empName || "غير معروف";
 
-            // 3. الفلترة والمقارنة
             if (recordDate >= fromInput && recordDate <= toInput) {
-                total += hours;
-                count++;
-                html += `
-                    <tr>
-                        <td>${recordDate}</td>
-                        <td>${name}</td>
-                        <td>${data.Dept || data.dept || '-'}</td>
-                        <td><span class="status-badge badge-success">${hours} ساعة</span></td>
-                        <td>${data.Reason || data.reason || '-'}</td>
-                    </tr>`;
+                total += h;
+                foundCount++;
+                html += `<tr>
+                    <td>${recordDate}</td>
+                    <td>${name}</td>
+                    <td>${data.Dept || data.dept || "-"}</td>
+                    <td><span class="status-badge badge-success">${h} ساعة</span></td>
+                    <td>${data.Reason || data.reason || "-"}</td>
+                </tr>`;
             }
         });
 
-        if (count === 0) {
-            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:orange;">تم العثور على بيانات ولكن لا تقع ضمن التواريخ المختارة.</td></tr>';
+        if (foundCount === 0) {
+            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">لم يتم العثور على سجلات مطابقة.</td></tr>';
         } else {
             reportBody.innerHTML = html;
         }
         totalDisplay.innerText = total.toFixed(2);
 
     } catch (error) {
-        console.error("Detailed Error:", error);
-        alert("حدث خطأ تقني، تأكد من الكونسول (F12)");
-        reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">خطأ في جلب البيانات</td></tr>';
+        console.error("Error Details:", error);
+        alert("خطأ: " + error.message);
     }
 };
         window.downloadOvertimeCSV = function() {
@@ -1886,6 +1872,7 @@
     </script>
 </body>
 </html>
+
 
 
 
