@@ -1783,9 +1783,47 @@
             drawTableSection('calendar-table-morning', morningEmployees);
             drawTableSection('calendar-table-evening', eveningEmployees);
         };
+        // دالة عرض بيانات الإضافي
+function previewOvertimeData() {
+    const fromDate = document.getElementById('overtime-from').value;
+    const toDate = document.getElementById('overtime-to').value;
+    const reportBody = document.getElementById('overtime-report-body');
+    
+    if (!fromDate || !toDate) {
+        alert("يرجى اختيار الفترة الزمنية أولاً");
+        return;
+    }
+
+    // هنا يجب أن يكون لديك مصفوفة تحتوي على بيانات الإضافي
+    // سنفترض أن اسمها allOvertimeGlobal
+    if (typeof allOvertimeGlobal === 'undefined') {
+        reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">لا توجد بيانات مسجلة</td></tr>';
+        return;
+    }
+
+    let filtered = allOvertimeGlobal.filter(item => item.date >= fromDate && item.date <= toDate);
+    
+    let html = "";
+    let totalHours = 0;
+    
+    filtered.forEach(item => {
+        totalHours += parseFloat(item.hours);
+        html += `<tr>
+            <td>${item.date}</td>
+            <td>${item.empName}</td>
+            <td>${item.dept}</td>
+            <td>${item.hours}</td>
+            <td>${item.reason}</td>
+        </tr>`;
+    });
+
+    reportBody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">لا توجد سجلات لهذه الفترة</td></tr>';
+    document.getElementById('total-month-hours').innerText = totalHours;
+}
     </script>
 </body>
 </html>
+
 
 
 
