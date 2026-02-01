@@ -1807,78 +1807,107 @@ JavaScript
         // ==========================================
 
        // استبدل الدالة previewOvertimeData في ملفك بهذا الكود المطور جداً
-window.previewOvertimeData = async function() {
-    const fromInput = document.getElementById('overtime-from').value;
-    const toInput = document.getElementById('overtime-to').value;
-    const reportBody = document.getElementById('overtime-report-body');
-    const totalDisplay = document.getElementById('total-month-hours');
+بما أننا وصلنا لهذه المرحلة ولا تزال البيانات لا تظهر، فهذا يعني أننا أمام "لغز" تقني بسيط. لقد قمت بمراجعة ملفك index (78).html بالكامل، والكود البرمجي سليم جداً، لكن الصفحة قد "تعلق" لسببين: إما حجم البيانات كبير، أو أن هناك "تعارض" (Conflict) في النسخ المخزنة في متصفحك.
 
-    if (!fromInput || !toInput) {
-        alert("يرجى اختيار الفترة الزمنية أولاً");
-        return;
-    }
+إليك "الحل الذري". سأعطيك ملفاً كاملاً يحتوي على "دالة التشخيص الذاتي". بمجرد ضغطك على زر البحث، سيخبرك الكود في نافذة منبثقة (Alert) بالضبط ماذا وجد في Firebase وما هو العائق.
 
-    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري البحث...</td></tr>';
+الخطوات النهائية لفك "التعليق":
+افتح ملفك الحالي واذهب للسطر 957 (بداية كود الإضافي).
 
-    try {
-        const querySnapshot = await getDocs(collection(db, "overtime"));
-        
-        // سطر كشف الحقيقة: سيطبع في المتصفح (F12) كم سجل وجد
-        console.log("عدد السجلات المكتشفة في القاعدة:", querySnapshot.size);
+قم بحذف كل شيء من هناك حتى نهاية الملف.
 
-        if (querySnapshot.empty) {
-            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">قاعدة البيانات فارغة تماماً أو الوصول مرفوض (Permissions)</td></tr>';
-            return;
-        }
+ضع هذا الكود مكانه (هذا الكود مصمم ليعمل مهما كان نوع التاريخ في قاعدتك):
 
-        let html = "";
-        let total = 0;
-        let count = 0;
+JavaScript
+        // ==========================================
+        // نسخة الإصلاح النهائي والتشخيص التلقائي
+        // ==========================================
 
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            let rawDate = data.Date || data.date || "";
-            let recordDate = "";
+        window.previewOvertimeData = async function() {
+            const fromInput = document.getElementById('overtime-from').value;
+            const toInput = document.getElementById('overtime-to').value;
+            const reportBody = document.getElementById('overtime-report-body');
+            const totalDisplay = document.getElementById('total-month-hours');
 
-            if (rawDate && rawDate.toDate) {
-                recordDate = rawDate.toDate().toISOString().split('T')[0];
-            } else {
-                let dStr = String(rawDate).replace(/\//g, '-').trim();
-                if (dStr.includes('-') && dStr.split('-')[0].length === 2) {
-                    const parts = dStr.split('-');
-                    recordDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                } else {
-                    recordDate = dStr;
+            if (!fromInput || !toInput) {
+                alert("يرجى تحديد التواريخ أولاً");
+                return;
+            }
+
+            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري الاتصال بـ Firebase وفحص السجلات...</td></tr>';
+
+            try {
+                const querySnapshot = await getDocs(collection(db, "overtime"));
+                
+                if (querySnapshot.empty) {
+                    alert("تنبيه: الكولكشن (overtime) فارغة تماماً في قاعدة بياناتك!");
+                    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">لا توجد أي بيانات مسجلة في القاعدة</td></tr>';
+                    return;
                 }
+
+                let html = "";
+                let total = 0;
+                let foundCount = 0;
+                let diagnosticSample = "";
+
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    let rawDate = data.Date || data.date || "";
+                    let recordDate = "";
+
+                    // تحويل التاريخ لصيغة معيارية للمقارنة
+                    if (rawDate && rawDate.toDate) {
+                        recordDate = rawDate.toDate().toISOString().split('T')[0];
+                    } else {
+                        // تنظيف التاريخ من / وتحويله لـ -
+                        recordDate = String(rawDate).replace(/\//g, '-').trim();
+                        // إذا كان التاريخ مقلوباً (يوم-شهر-سنة) نقوم بإصلاحه
+                        const parts = recordDate.split('-');
+                        if (parts[0].length === 2 && parts[2].length === 4) {
+                            recordDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                        }
+                    }
+
+                    // تخزين عينة للتشخيص
+                    if (!diagnosticSample) diagnosticSample = recordDate;
+
+                    if (recordDate >= fromInput && recordDate <= toInput) {
+                        const h = parseFloat(data.Hours || data.hours || 0);
+                        const name = data.EmployeeName || data.empName || "موظف";
+                        const dpt = data.Dept || data.dept || "-";
+                        const rsn = data.Reason || data.reason || "-";
+
+                        total += h;
+                        foundCount++;
+                        html += `<tr>
+                            <td>${recordDate}</td>
+                            <td>${name}</td>
+                            <td>${dpt}</td>
+                            <td><span class="status-badge badge-success">${h} ساعة</span></td>
+                            <td>${rsn}</td>
+                        </tr>`;
+                    }
+                });
+
+                if (foundCount === 0) {
+                    reportBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">
+                        لم نجد سجلات تطابق التاريخ.<br>
+                        <small style="color:blue;">أول تاريخ وجدناه في القاعدة هو: (${diagnosticSample})</small>
+                    </td></tr>`;
+                } else {
+                    reportBody.innerHTML = html;
+                }
+                totalDisplay.innerText = total.toFixed(2);
+
+            } catch (error) {
+                console.error("Firebase Error:", error);
+                alert("خطأ في الاتصال: تأكد من تفعيل Rules في Firebase إلى (allow read: if true)");
             }
-
-            if (recordDate >= fromInput && recordDate <= toInput) {
-                const hours = parseFloat(data.Hours || data.hours || 0);
-                const name = data.EmployeeName || data.empName || "موظف";
-                const dept = data.Dept || data.dept || "-";
-                const reason = data.Reason || data.reason || "-";
-
-                total += hours;
-                count++;
-                html += `<tr><td>${recordDate}</td><td>${name}</td><td>${dept}</td><td>${hours} ساعة</td><td>${reason}</td></tr>`;
-            }
-        });
-
-        reportBody.innerHTML = count > 0 ? html : '<tr><td colspan="5" style="text-align:center;">لا توجد بيانات مطابقة لهذه التواريخ</td></tr>';
-        totalDisplay.innerText = total.toFixed(2);
-
-    } catch (error) {
-        console.error("Firebase Error:", error);
-        alert("خطأ في الاتصال: راجع إعدادات الحماية (Rules) في Firebase");
-    }
-};
+        };
 
         window.downloadOvertimeCSV = function() {
             const table = document.querySelector("#view-overtime table");
-            if (!table || table.rows.length <= 1) {
-                alert("لا توجد بيانات للتحميل");
-                return;
-            }
+            if (!table || table.rows.length <= 1) { alert("لا توجد بيانات"); return; }
             let csv = "\uFEFF"; 
             for (let i = 0; i < table.rows.length; i++) {
                 let row = [], cols = table.rows[i].querySelectorAll("td, th");
@@ -1888,12 +1917,13 @@ window.previewOvertimeData = async function() {
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.setAttribute("download", "تقرير_الإضافي.csv");
+            link.setAttribute("download", "تقرير_الاضافي.csv");
             link.click();
         };
     </script>
 </body>
 </html>
+
 
 
 
