@@ -1874,80 +1874,11 @@ window.downloadOvertimeCSV = function() {
             drawTableSection('calendar-table-morning', morningEmployees);
             drawTableSection('calendar-table-evening', eveningEmployees);
         };
-async function previewOvertimeData() {
-    const fromDate = document.getElementById('overtime-from').value;
-    const toDate = document.getElementById('overtime-to').value;
-    const reportBody = document.getElementById('overtime-report-body');
-    const totalDisplay = document.getElementById('total-month-hours');
 
-    if (!fromDate || !toDate) {
-        alert("يرجى اختيار الفترة الزمنية أولاً");
-        return;
-    }
-
-    // إظهار حالة التحميل
-    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري جلب البيانات من فايربيز...</td></tr>';
-
-    try {
-        // جلب البيانات من كولكشن العمل الإضافي (تأكد من اسم الكولكشن عندك، غالباً 'overtime')
-        const q = query(collection(db, "overtime"), 
-            where("date", ">=", fromDate), 
-            where("date", "<=", toDate));
-            
-        const querySnapshot = await getDocs(q);
-        let html = "";
-        let totalHours = 0;
-
-        if (querySnapshot.empty) {
-            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">لا توجد سجلات لهذه الفترة</td></tr>';
-            totalDisplay.innerText = "0";
-            return;
-        }
-
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            totalHours += parseFloat(data.hours || 0);
-            html += `
-                <tr>
-                    <td>${data.date}</td>
-                    <td>${data.empName}</td>
-                    <td>${data.dept || '-'}</td>
-                    <td><span class="status-badge badge-success">${data.hours} ساعة</span></td>
-                    <td>${data.reason || '-'}</td>
-                </tr>`;
-        });
-
-        reportBody.innerHTML = html;
-        totalDisplay.innerText = totalHours.toFixed(2);
-
-    } catch (error) {
-        console.error("Firebase Error:", error);
-        reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">حدث خطأ في الاتصال بالقاعدة</td></tr>';
-    }
-}
-        function downloadOvertimeCSV() {
-    const table = document.querySelector("#view-overtime table");
-    if (!table || table.rows.length <= 2 && table.rows[1].cells.length === 1) {
-        alert("لا توجد بيانات لتحميلها");
-        return;
-    }
-
-    let csv = "\uFEFF"; // دعم اللغة العربية
-    for (let i = 0; i < table.rows.length; i++) {
-        let row = [], cols = table.rows[i].querySelectorAll("td, th");
-        for (let j = 0; j < cols.length; j++) row.push('"' + cols[j].innerText + '"');
-        csv += row.join(",") + "\r\n";
-    }
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.setAttribute("download", `تقرير_الاضافي_${new Date().toISOString().slice(0,10)}.csv`);
-    link.click();
-}
     </script>
 </body>
 </html>
+
 
 
 
