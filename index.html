@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/presto.app/">
     
-    <title>Presto 11OP</title>
+    <title>Presto 111OP</title>
     
     <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -1783,46 +1783,81 @@
             drawTableSection('calendar-table-morning', morningEmployees);
             drawTableSection('calendar-table-evening', eveningEmployees);
         };
-        // دالة عرض بيانات الإضافي
-function previewOvertimeData() {
+     // دالة عرض بيانات العمل الإضافي من فايربيز
+async function previewOvertimeData() {
     const fromDate = document.getElementById('overtime-from').value;
     const toDate = document.getElementById('overtime-to').value;
     const reportBody = document.getElementById('overtime-report-body');
-    
+    const totalDisplay = document.getElementById('total-month-hours');
+
     if (!fromDate || !toDate) {
-        alert("يرجى اختيار الفترة الزمنية أولاً");
+        showToast("يرجى اختيار الفترة الزمنية أولاً", "warning");
         return;
     }
 
-    // هنا يجب أن يكون لديك مصفوفة تحتوي على بيانات الإضافي
-    // سنفترض أن اسمها allOvertimeGlobal
-    if (typeof allOvertimeGlobal === 'undefined') {
-        reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">لا توجد بيانات مسجلة</td></tr>';
-        return;
+    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري جلب البيانات...</td></tr>';
+
+    try {
+        // جلب البيانات من كولكشن العمل الإضافي في فايربيز
+        // ملاحظة: تأكد أن db معرفة مسبقاً في كود التهيئة الخاص بك
+        const q = query(collection(db, "overtime"), 
+            where("date", ">=", fromDate), 
+            where("date", "<=", toDate));
+            
+        const querySnapshot = await getDocs(q);
+        let html = "";
+        let totalHours = 0;
+
+        if (querySnapshot.empty) {
+            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">لا توجد سجلات لهذه الفترة</td></tr>';
+            totalDisplay.innerText = "0";
+            return;
+        }
+
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            totalHours += parseFloat(data.hours || 0);
+            html += `
+                <tr>
+                    <td>${data.date}</td>
+                    <td>${data.empName}</td>
+                    <td>${data.dept || '-'}</td>
+                    <td><span class="status-badge badge-success">${data.hours} ساعة</span></td>
+                    <td>${data.reason || '-'}</td>
+                </tr>`;
+        });
+
+        reportBody.innerHTML = html;
+        totalDisplay.innerText = totalHours.toFixed(2);
+
+    } catch (error) {
+        console.error("Error fetching overtime:", error);
+        reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">حدث خطأ أثناء جلب البيانات</td></tr>';
+    }
+}
+
+// دالة تصدير البيانات إلى ملف Excel (CSV)
+function downloadOvertimeCSV() {
+    const table = document.querySelector("#view-overtime table");
+    let csv = "\uFEFF"; // لدعم اللغة العربية في Excel
+    const rows = table.querySelectorAll("tr");
+    
+    for (const row of rows) {
+        const cols = row.querySelectorAll("td, th");
+        const rowData = Array.from(cols).map(col => `"${col.innerText}"`).join(",");
+        csv += rowData + "\r\n";
     }
 
-    let filtered = allOvertimeGlobal.filter(item => item.date >= fromDate && item.date <= toDate);
-    
-    let html = "";
-    let totalHours = 0;
-    
-    filtered.forEach(item => {
-        totalHours += parseFloat(item.hours);
-        html += `<tr>
-            <td>${item.date}</td>
-            <td>${item.empName}</td>
-            <td>${item.dept}</td>
-            <td>${item.hours}</td>
-            <td>${item.reason}</td>
-        </tr>`;
-    });
-
-    reportBody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">لا توجد سجلات لهذه الفترة</td></tr>';
-    document.getElementById('total-month-hours').innerText = totalHours;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute("download", `تقرير_الاضافي_${new Date().toLocaleDateString()}.csv`);
+    link.click();
 }
     </script>
 </body>
 </html>
+
 
 
 
