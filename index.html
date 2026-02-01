@@ -603,6 +603,7 @@
         }
     };
 // ربط الدوال بالنافذة لضمان عملها مع onclick
+// 1. جعل الدالة عالمية لكي يراها زر "بحث"
 window.previewOvertimeData = async function() {
     const fromDate = document.getElementById('overtime-from').value;
     const toDate = document.getElementById('overtime-to').value;
@@ -617,7 +618,8 @@ window.previewOvertimeData = async function() {
     reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري جلب البيانات...</td></tr>';
 
     try {
-        // جلب البيانات من كولكشن 'overtime'
+        // جلب البيانات من كولكشن overtime
+        // ملاحظة: استبدل "overtime" باسم الكولكشن الصحيح لديك إذا كان مختلفاً
         const querySnapshot = await getDocs(collection(db, "overtime"));
         
         let html = "";
@@ -626,43 +628,46 @@ window.previewOvertimeData = async function() {
 
         querySnapshot.forEach((doc) => {
             const data = doc.data();
-            // فلترة البيانات يدوياً لضمان العمل حتى بدون Index حالياً
+            // فلترة يدوية لضمان العمل حتى لو لم تكن قد فعلت الـ Indexes في فايربيز
             if (data.date >= fromDate && data.date <= toDate) {
-                const h = parseFloat(data.hours || 0);
-                totalHours += h;
+                const hours = parseFloat(data.hours || 0);
+                totalHours += hours;
                 count++;
                 html += `
                     <tr>
                         <td>${data.date}</td>
                         <td>${data.empName || 'غير معروف'}</td>
                         <td>${data.dept || '-'}</td>
-                        <td><span class="status-badge badge-success">${h} ساعة</span></td>
+                        <td><span class="status-badge badge-success">${hours} ساعة</span></td>
                         <td>${data.reason || '-'}</td>
                     </tr>`;
             }
         });
 
         if (count === 0) {
-            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">لا توجد بيانات تطابق هذه الفترة</td></tr>';
+            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">لا توجد بيانات مسجلة لهذه الفترة</td></tr>';
+            totalDisplay.innerText = "0";
         } else {
             reportBody.innerHTML = html;
+            totalDisplay.innerText = totalHours.toFixed(2);
         }
-        totalDisplay.innerText = totalHours.toFixed(2);
 
     } catch (error) {
         console.error("Firebase Error:", error);
-        alert("حدث خطأ، يرجى فحص الـ Console (F12)");
-        reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">فشل الاتصال</td></tr>';
+        alert("خطأ في جلب البيانات: " + error.message);
+        reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">فشل الاتصال بقاعدة البيانات</td></tr>';
     }
 };
+
+// 2. جعل دالة التحميل عالمية لكي يراها زر "تحميل إكسل"
 window.downloadOvertimeCSV = function() {
     const table = document.querySelector("#view-overtime table");
     if (!table || table.rows.length <= 1) {
-        alert("لا توجد بيانات لتحميلها");
+        alert("لا توجد بيانات متوفرة للتحميل حالياً");
         return;
     }
 
-    let csv = "\uFEFF"; 
+    let csv = "\uFEFF"; // لدعم اللغة العربية في Excel
     for (let i = 0; i < table.rows.length; i++) {
         let row = [], cols = table.rows[i].querySelectorAll("td, th");
         for (let j = 0; j < cols.length; j++) row.push('"' + cols[j].innerText + '"');
@@ -672,7 +677,7 @@ window.downloadOvertimeCSV = function() {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.setAttribute("download", `تقرير_الاضافي.csv`);
+    link.setAttribute("download", `تقرير_الاضافي_${fromDate || 'تحميل'}.csv`);
     link.click();
 };
     // هذه الدالة ضرورية لعرض التذكيرات
@@ -1929,6 +1934,7 @@ async function previewOvertimeData() {
     </script>
 </body>
 </html>
+
 
 
 
