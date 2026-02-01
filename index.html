@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/presto.app/">
     
-    <title>Presto 1111OP</title>
+    <title>Presto 111OP</title>
     
     <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -1806,77 +1806,78 @@ JavaScript
         // الدوال المصلحة للإضافي - نسخة الحماية القصوى
         // ==========================================
 
-        window.previewOvertimeData = async function() {
-            const fromInput = document.getElementById('overtime-from').value;
-            const toInput = document.getElementById('overtime-to').value;
-            const reportBody = document.getElementById('overtime-report-body');
-            const totalDisplay = document.getElementById('total-month-hours');
+       // استبدل الدالة previewOvertimeData في ملفك بهذا الكود المطور جداً
+window.previewOvertimeData = async function() {
+    const fromInput = document.getElementById('overtime-from').value;
+    const toInput = document.getElementById('overtime-to').value;
+    const reportBody = document.getElementById('overtime-report-body');
+    const totalDisplay = document.getElementById('total-month-hours');
 
-            if (!fromInput || !toInput) {
-                alert("يرجى اختيار التواريخ أولاً");
-                return;
-            }
+    if (!fromInput || !toInput) {
+        alert("يرجى اختيار الفترة الزمنية أولاً");
+        return;
+    }
 
-            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري البحث في قاعدة البيانات...</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري فحص قاعدة البيانات...</td></tr>';
 
-            try {
-                // جلب البيانات من كولكشن "overtime"
-                const querySnapshot = await getDocs(collection(db, "overtime"));
-                
-                let html = "";
-                let total = 0;
-                let foundCount = 0;
+    try {
+        const querySnapshot = await getDocs(collection(db, "overtime"));
+        let html = "";
+        let total = 0;
+        let count = 0;
 
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    
-                    // 1. معالجة التاريخ بذكاء (يدعم كل الصيغ)
-                    let rawDate = data.Date || data.date || "";
-                    let recordDate = "";
-                    
-                    if (rawDate && rawDate.toDate) {
-                        recordDate = rawDate.toDate().toISOString().split('T')[0];
-                    } else {
-                        // تحويل / إلى - لتوحيد الصيغة مع المدخلات
-                        recordDate = String(rawDate).replace(/\//g, '-').trim();
-                    }
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            
+            // 1. معالجة مرنة جداً للتاريخ
+            let rawDate = data.Date || data.date || "";
+            let recordDate = "";
 
-                    // 2. المقارنة والفلترة
-                    if (recordDate >= fromInput && recordDate <= toInput) {
-                        const hours = parseFloat(data.Hours || data.hours || 0);
-                        const name = data.EmployeeName || data.empName || data.EmpName || "موظف";
-                        const dept = data.Dept || data.dept || "-";
-                        const reason = data.Reason || data.reason || "-";
-
-                        total += hours;
-                        foundCount++;
-                        html += `
-                            <tr>
-                                <td>${recordDate}</td>
-                                <td>${name}</td>
-                                <td>${dept}</td>
-                                <td><span class="status-badge badge-success">${hours} ساعة</span></td>
-                                <td>${reason}</td>
-                            </tr>`;
-                    }
-                });
-
-                if (foundCount === 0) {
-                    reportBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#e85a3a;">
-                        لا توجد بيانات مسجلة في هذه الفترة.<br>
-                        <small>تأكد من اختيار تاريخ صحيح (مثلاً من 2024-01-01 إلى 2025-12-31)</small>
-                    </td></tr>`;
-                    totalDisplay.innerText = "0";
+            if (rawDate && rawDate.toDate) {
+                recordDate = rawDate.toDate().toISOString().split('T')[0];
+            } else {
+                let dStr = String(rawDate).replace(/\//g, '-').trim();
+                // إذا كان التاريخ مخزناً DD-MM-YYYY نقوم بقلبه ليصبح YYYY-MM-DD
+                if (dStr.includes('-') && dStr.split('-')[0].length === 2) {
+                    const parts = dStr.split('-');
+                    recordDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
                 } else {
-                    reportBody.innerHTML = html;
-                    totalDisplay.innerText = total.toFixed(2);
+                    recordDate = dStr;
                 }
-
-            } catch (error) {
-                console.error("Firebase Error:", error);
-                alert("حدث خطأ في جلب البيانات: " + error.message);
             }
-        };
+
+            // 2. الفلترة (مع التأكد من صحة التواريخ)
+            if (recordDate >= fromInput && recordDate <= toInput) {
+                const hours = parseFloat(data.Hours || data.hours || 0);
+                const name = data.EmployeeName || data.empName || "موظف";
+                const dept = data.Dept || data.dept || "-";
+                const reason = data.Reason || data.reason || "-";
+
+                total += hours;
+                count++;
+                html += `<tr>
+                    <td>${recordDate}</td>
+                    <td>${name}</td>
+                    <td>${dept}</td>
+                    <td><span class="status-badge badge-success">${hours} ساعة</span></td>
+                    <td>${reason}</td>
+                </tr>`;
+            }
+        });
+
+        if (count === 0) {
+            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:orange;">لم نجد بيانات تطابق هذه الفترة. تأكد أنك سجلت الإضافي مسبقاً بنفس هذه التواريخ.</td></tr>';
+            totalDisplay.innerText = "0";
+        } else {
+            reportBody.innerHTML = html;
+            totalDisplay.innerText = total.toFixed(2);
+        }
+
+    } catch (error) {
+        console.error("Firebase Error:", error);
+        alert("فشل في جلب البيانات: تأكد من إعدادات الحماية Rules في Firebase");
+    }
+};
 
         window.downloadOvertimeCSV = function() {
             const table = document.querySelector("#view-overtime table");
@@ -1899,6 +1900,7 @@ JavaScript
     </script>
 </body>
 </html>
+
 
 
 
