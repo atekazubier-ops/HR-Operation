@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/presto.app/">
     
-    <title>Presto 1OP</title>
+    <title>Presto 1O1P</title>
     
     <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -602,6 +602,7 @@
             loadReminders();
         }
     };
+// ربط الدوال بالنافذة لضمان عملها مع onclick
 window.previewOvertimeData = async function() {
     const fromDate = document.getElementById('overtime-from').value;
     const toDate = document.getElementById('overtime-to').value;
@@ -613,33 +614,37 @@ window.previewOvertimeData = async function() {
         return;
     }
 
-    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري جلب البيانات...</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري البحث...</td></tr>';
 
     try {
-        // استخدام متغير db الذي تم تعريفه عند تهيئة فايربيز
-        const q = query(collection(db, "overtime"), 
+        // تنبيه: تأكد أن اسم الكولكشن 'overtime' هو نفس الاسم في Firebase عندك
+        const overtimeRef = collection(db, "overtime"); 
+        const q = query(overtimeRef, 
             where("date", ">=", fromDate), 
             where("date", "<=", toDate));
             
         const querySnapshot = await getDocs(q);
-        let html = "";
-        let totalHours = 0;
-
+        
         if (querySnapshot.empty) {
-            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">لا توجد سجلات لهذه الفترة</td></tr>';
+            console.log("No data found for period:", fromDate, "to", toDate);
+            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">لا توجد بيانات لهذه الفترة (تأكد من صحة التواريخ)</td></tr>';
             totalDisplay.innerText = "0";
             return;
         }
 
+        let html = "";
+        let totalHours = 0;
+
         querySnapshot.forEach((doc) => {
             const data = doc.data();
+            // تأكد أن أسماء الحقول (date, empName, hours) مطابقة تماماً لقاعدة بياناتك
             totalHours += parseFloat(data.hours || 0);
             html += `
                 <tr>
-                    <td>${data.date}</td>
-                    <td>${data.empName}</td>
+                    <td>${data.date || '-'}</td>
+                    <td>${data.empName || 'غير معروف'}</td>
                     <td>${data.dept || '-'}</td>
-                    <td><span class="status-badge badge-success">${data.hours} ساعة</span></td>
+                    <td><span class="status-badge badge-success">${data.hours || 0} ساعة</span></td>
                     <td>${data.reason || '-'}</td>
                 </tr>`;
         });
@@ -648,8 +653,9 @@ window.previewOvertimeData = async function() {
         totalDisplay.innerText = totalHours.toFixed(2);
 
     } catch (error) {
-        console.error("Firebase Error:", error);
-        alert("حدث خطأ في الوصول لقاعدة البيانات. تأكد من إعدادات الحماية (Rules)");
+        console.error("Error Detail:", error);
+        alert("فشل جلب البيانات. افحص الكونسول (F12) لمعرفة السبب.");
+        reportBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:red;">خطأ: ${error.message}</td></tr>`;
     }
 };
 
@@ -1927,6 +1933,7 @@ async function previewOvertimeData() {
     </script>
 </body>
 </html>
+
 
 
 
