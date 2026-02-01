@@ -608,6 +608,71 @@
 
 // 1. دالة عرض البيانات مع ربطها بـ window لضمان عمل زر "بحث"
 window.previewOvertimeData = async function() {
+    const fromDate = document.getElementById('overtime-from').value;
+    const toDate = document.getElementById('overtime-to').value;
+    const reportBody = document.getElementById('overtime-report-body');
+    const totalDisplay = document.getElementById('total-month-hours');
+
+    if (!fromDate || !toDate) {
+        alert("يرجى اختيار الفترة الزمنية أولاً");
+        return;
+    }
+
+    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري جلب البيانات...</td></tr>';
+
+    try {
+        const querySnapshot = await getDocs(collection(db, "overtime"));
+        let html = "";
+        let totalHours = 0;
+        let count = 0;
+
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            
+            // توحيد قراءة التاريخ (دعم Date و date)
+            let rawDate = data.Date || data.date || "";
+            let recordDate = "";
+            
+            if (rawDate && rawDate.toDate) {
+                recordDate = rawDate.toDate().toISOString().split('T')[0];
+            } else {
+                recordDate = String(rawDate).trim();
+            }
+
+            // المقارنة
+            if (recordDate >= fromDate && recordDate <= toDate) {
+                // توحيد مسميات الحقول الأخرى
+                const h = parseFloat(data.Hours || data.hours || 0);
+                const name = data.EmployeeName || data.empName || "غير معروف";
+                const dpt = data.Dept || data.dept || "-";
+                const rsn = data.Reason || data.reason || "-";
+
+                totalHours += h;
+                count++;
+                html += `
+                    <tr>
+                        <td>${recordDate}</td>
+                        <td>${name}</td>
+                        <td>${dpt}</td>
+                        <td><span class="status-badge badge-success">${h} ساعة</span></td>
+                        <td>${rsn}</td>
+                    </tr>`;
+            }
+        });
+
+        if (count === 0) {
+            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">لا توجد بيانات مطابقة لهذه الفترة</td></tr>';
+            totalDisplay.innerText = "0";
+        } else {
+            reportBody.innerHTML = html;
+            totalDisplay.innerText = totalHours.toFixed(2);
+        }
+
+    } catch (error) {
+        console.error("Firebase Error:", error);
+        alert("حدث خطأ أثناء جلب البيانات: " + error.message);
+    }
+};
 // 2. دالة تحميل الملف مع ربطها بـ window لضمان عمل زر "تحميل"
 window.downloadOvertimeCSV = function() {
     const table = document.querySelector("#view-overtime table");
@@ -1883,6 +1948,7 @@ async function previewOvertimeData() {
     </script>
 </body>
 </html>
+
 
 
 
