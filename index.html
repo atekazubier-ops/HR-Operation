@@ -607,92 +607,9 @@
 // --- قسم معالجة العمل الإضافي (المصحح) ---
 
 // 1. دالة عرض البيانات مع ربطها بـ window لضمان عمل زر "بحث"
-window.previewOvertimeData = async function() {
-    const fromDateInput = document.getElementById('overtime-from').value;
-    const toDateInput = document.getElementById('overtime-to').value;
-    const reportBody = document.getElementById('overtime-report-body');
-    const totalDisplay = document.getElementById('total-month-hours');
 
-    if (!fromDateInput || !toDateInput) {
-        alert("يرجى اختيار الفترة الزمنية أولاً");
-        return;
-    }
-
-    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري جلب البيانات...</td></tr>';
-
-    try {
-        const querySnapshot = await getDocs(collection(db, "overtime"));
-        let html = "";
-        let totalHours = 0;
-        let count = 0;
-
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            
-            // 1. معالجة التاريخ (دعم الحروف الكبيرة والصغيرة)
-            let rawDate = data.Date || data.date || "";
-            let recordDate = "";
-            if (rawDate && rawDate.toDate) {
-                recordDate = rawDate.toDate().toISOString().split('T')[0];
-            } else {
-                recordDate = String(rawDate).trim();
-            }
-
-            // 2. الفلترة والمقارنة
-            if (recordDate >= fromDateInput && recordDate <= toDateInput) {
-                // 3. قراءة البيانات (دعم كافة مسميات الحقول المحتملة)
-                const h = parseFloat(data.Hours || data.hours || 0);
-                const name = data.EmployeeName || data.empName || data.EmpName || "غير معروف";
-                const dpt = data.Dept || data.dept || "-";
-                const rsn = data.Reason || data.reason || "-";
-
-                totalHours += h;
-                count++;
-                html += `
-                    <tr>
-                        <td>${recordDate}</td>
-                        <td>${name}</td>
-                        <td>${dpt}</td>
-                        <td><span class="status-badge badge-success">${h} ساعة</span></td>
-                        <td>${rsn}</td>
-                    </tr>`;
-            }
-        });
-
-        if (count === 0) {
-            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">لا توجد بيانات مطابقة لهذه الفترة</td></tr>';
-            totalDisplay.innerText = "0";
-        } else {
-            reportBody.innerHTML = html;
-            totalDisplay.innerText = totalHours.toFixed(2);
-        }
-
-    } catch (error) {
-        console.error("Firebase Error:", error);
-        alert("حدث خطأ أثناء جلب البيانات: " + error.message);
-    }
-};
 // 2. دالة تحميل الملف مع ربطها بـ window لضمان عمل زر "تحميل"
-window.downloadOvertimeCSV = function() {
-    const table = document.querySelector("#view-overtime table");
-    if (!table || table.rows.length <= 1) {
-        alert("لا توجد بيانات متاحة للتحميل");
-        return;
-    }
 
-    let csv = "\uFEFF"; // دعم اللغة العربية
-    for (let i = 0; i < table.rows.length; i++) {
-        let row = [], cols = table.rows[i].querySelectorAll("td, th");
-        for (let j = 0; j < cols.length; j++) row.push('"' + cols[j].innerText + '"');
-        csv += row.join(",") + "\r\n";
-    }
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.setAttribute("download", `تقرير_الإضافي_${new Date().toLocaleDateString()}.csv`);
-    link.click();
-};
     // هذه الدالة ضرورية لعرض التذكيرات
     function loadReminders() {
         const listEl = document.getElementById('reminder-list');
@@ -1959,6 +1876,7 @@ window.previewOvertimeData = async function() {
     </script>
 </body>
 </html>
+
 
 
 
