@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/presto.app/">
     
-    <title>Presto OP</title>
+    <title>Presto 1OP</title>
     
     <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -608,74 +608,6 @@
 
 // 1. دالة عرض البيانات مع ربطها بـ window لضمان عمل زر "بحث"
 window.previewOvertimeData = async function() {
-    const fromDateInput = document.getElementById('overtime-from').value;
-    const toDateInput = document.getElementById('overtime-to').value;
-    const reportBody = document.getElementById('overtime-report-body');
-    const totalDisplay = document.getElementById('total-month-hours');
-
-    if (!fromDateInput || !toDateInput) {
-        alert("يرجى اختيار الفترة الزمنية أولاً");
-        return;
-    }
-
-    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري جلب البيانات...</td></tr>';
-
-    try {
-        // جلب البيانات من كولكشن overtime
-        const querySnapshot = await getDocs(collection(db, "overtime"));
-        
-        let html = "";
-        let totalHours = 0;
-        let count = 0;
-
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            
-            // --- حل مشكلة الحروف الكبيرة والصغيرة ---
-            // نبحث عن التاريخ في 'date' أو 'Date'
-            let recordDate = data.date || data.Date || "";
-            
-            // تحويل التاريخ لنص وتوحيد التنسيق (YYYY-MM-DD)
-            if (recordDate && typeof recordDate.toDate === 'function') {
-                recordDate = recordDate.toDate().toISOString().split('T')[0];
-            } else {
-                recordDate = String(recordDate).trim();
-            }
-
-            // تنفيذ المقارنة
-            if (recordDate >= fromDateInput && recordDate <= toDateInput) {
-                // قراءة الحقول بمرونة (كبير أو صغير)
-                const h = parseFloat(data.hours || data.Hours || 0);
-                const name = data.empName || data.EmpName || data.employeeName || 'غير معروف';
-                const dpt = data.dept || data.Dept || '-';
-                const rsn = data.reason || data.Reason || '-';
-
-                totalHours += h;
-                count++;
-                html += `
-                    <tr>
-                        <td>${recordDate}</td>
-                        <td>${name}</td>
-                        <td>${dpt}</td>
-                        <td><span class="status-badge badge-success">${h} ساعة</span></td>
-                        <td>${rsn}</td>
-                    </tr>`;
-            }
-        });
-
-        if (count === 0) {
-            reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">لا توجد بيانات مسجلة لهذه الفترة. تأكد من تطابق التواريخ.</td></tr>';
-            totalDisplay.innerText = "0";
-        } else {
-            reportBody.innerHTML = html;
-            totalDisplay.innerText = totalHours.toFixed(2);
-        }
-
-    } catch (error) {
-        console.error("Firebase Error:", error);
-        alert("حدث خطأ في الاتصال: " + error.message);
-    }
-};
 // 2. دالة تحميل الملف مع ربطها بـ window لضمان عمل زر "تحميل"
 window.downloadOvertimeCSV = function() {
     const table = document.querySelector("#view-overtime table");
@@ -1951,6 +1883,7 @@ async function previewOvertimeData() {
     </script>
 </body>
 </html>
+
 
 
 
