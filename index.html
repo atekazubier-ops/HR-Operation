@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/presto.app/">
     
-    <title>Presto 1OP</title>
+    <title>Presto OP</title>
     
     <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -618,59 +618,60 @@ window.previewOvertimeData = async function() {
         return;
     }
 
-    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري تحليل البيانات في Firebase...</td></tr>';
+    reportBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري البحث والتدقيق...</td></tr>';
 
     try {
         const querySnapshot = await getDocs(collection(db, "overtime"));
         let html = "";
         let totalHours = 0;
         let count = 0;
-        let sampleData = []; // لتخزين عينة من البيانات للتشخيص
 
         querySnapshot.forEach((doc) => {
             const data = doc.data();
-            sampleData.push(data); // حفظ عينة
-
-            // تحويل التاريخ لضمان المقارنة (نصي أو Timestamp)
             let recordDate = "";
-            if (data.date && data.date.toDate) {
+
+            // ذكاء اصطناعي لتحويل التاريخ مهما كان نوعه في Firebase
+            if (data.date && typeof data.date.toDate === 'function') {
                 recordDate = data.date.toDate().toISOString().split('T')[0];
             } else {
-                recordDate = String(data.date || "").trim();
+                recordDate = String(data.date || data.Date || "").trim();
             }
 
+            // التأكد من مطابقة الصيغة YYYY-MM-DD
             if (recordDate >= fromDateInput && recordDate <= toDateInput) {
-                const h = parseFloat(data.hours || 0);
+                // قراءة الحقول سواء بدأت بحرف كبير أو صغير
+                const h = parseFloat(data.hours || data.Hours || 0);
+                const name = data.empName || data.EmpName || data.employeeName || 'غير معروف';
+                const dpt = data.dept || data.Dept || '-';
+                const rsn = data.reason || data.Reason || '-';
+
                 totalHours += h;
                 count++;
-                html += `<tr>
-                    <td>${recordDate}</td>
-                    <td>${data.empName || 'غير معروف'}</td>
-                    <td>${data.dept || '-'}</td>
-                    <td><span class="status-badge badge-success">${h} ساعة</span></td>
-                    <td>${data.reason || '-'}</td>
-                </tr>`;
+                html += `
+                    <tr>
+                        <td>${recordDate}</td>
+                        <td>${name}</td>
+                        <td>${dpt}</td>
+                        <td><span class="status-badge badge-success">${h} ساعة</span></td>
+                        <td>${rsn}</td>
+                    </tr>`;
             }
         });
 
         if (count === 0) {
-            // إذا لم يجد نتائج، سيعطيك تشخيصاً للمشكلة
-            let debugInfo = sampleData.length > 0 
-                ? `وجدنا ${sampleData.length} سجلات، لكن تاريخها لا يطابق اختيارك. مثال لتاريخ مسجل: (${sampleData[0].date})`
-                : "قاعدة البيانات فارغة تماماً (Collection: overtime)";
-                
-            reportBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#e85a3a;">
-                ${debugInfo} <br> 
-                تأكد أن التاريخ في Firebase مخزن بصيغة السنة-الشهر-اليوم (مثال: ${fromDateInput})
+            reportBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">
+                لا توجد بيانات مطابقة للفترة المختارة.<br>
+                <small style="color:gray;">تأكد أن التاريخ في Firebase مخزن بصيغة السنة-الشهر-اليوم</small>
             </td></tr>`;
+            totalDisplay.innerText = "0";
         } else {
             reportBody.innerHTML = html;
+            totalDisplay.innerText = totalHours.toFixed(2);
         }
-        totalDisplay.innerText = totalHours.toFixed(2);
 
     } catch (error) {
         console.error("Firebase Error:", error);
-        alert("خطأ في جلب البيانات: " + error.message);
+        alert("خطأ في الاتصال بقاعدة البيانات");
     }
 };
 // 2. دالة تحميل الملف مع ربطها بـ window لضمان عمل زر "تحميل"
@@ -1948,6 +1949,7 @@ async function previewOvertimeData() {
     </script>
 </body>
 </html>
+
 
 
 
