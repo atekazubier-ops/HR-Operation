@@ -559,6 +559,24 @@
             </div>
         </div>
     </div>
+    <div id="shiftToggleModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center;">
+    <div class="modal-content" style="background:var(--bg-card); padding:30px; border-radius:25px; width:90%; max-width:450px; box-shadow:var(--shadow-md);">
+        <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h3 style="margin:0;">🔄 تبادل التوكات</h3>
+            <button onclick="closeShiftModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color:var(--text-muted);">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="currentEmpInfo" style="background:var(--bg-main); padding:10px; border-radius:10px; font-size:14px; margin-bottom:15px; border-right:4px solid var(--primary);"></p>
+            <label style="display:block; margin-bottom:10px; font-weight:bold;">اختر الموظف البديل:</label>
+            <select id="otherEmployeeSelect" class="form-control" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border-color); background:var(--bg-main); color:var(--text-main);">
+                </select>
+        </div>
+        <div class="modal-footer" style="margin-top:25px; display:flex; gap:10px;">
+            <button onclick="confirmShiftSwap()" class="btn-main" style="flex:2; justify-content:center;">تأكيد التبديل</button>
+            <button onclick="closeShiftModal()" class="btn-secondary" style="flex:1; padding:12px; border-radius:15px; border:none; cursor:pointer;">إلغاء</button>
+        </div>
+    </div>
+</div>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-auth.js";
@@ -1900,54 +1918,69 @@ function toggleEmployeeShift() {
     }
 }
    
-       let currentEmployeeId = null;
+     let currentEmployeeId = null;
 
-// 1. فتح النافذة وتجهيز قائمة الموظفين
 function toggleEmployeeShift() {
+    // جلب الـ ID من الحقل المخفي في صفحة البروفايل
     currentEmployeeId = document.getElementById('edit-doc-id').value;
     const currentEmp = employees.find(e => e.id === currentEmployeeId);
     
-    if (!currentEmp) return;
+    if (!currentEmp) {
+        alert("يرجى اختيار موظف أولاً");
+        return;
+    }
 
-    // عرض بيانات الموظف الحالي
-    document.getElementById('currentEmpInfo').innerText = `تبديل توكة (${currentEmp.name}) الحالية: [${currentEmp.shift || 'غير محددة'}]`;
+    // تحديث النص في النافذة
+    const infoText = document.getElementById('currentEmpInfo');
+    if(infoText) {
+        infoText.innerText = `تبديل توكة الموظف: ${currentEmp.name} (التوكة الحالية: ${currentEmp.shift || 'غير محددة'})`;
+    }
 
-    // ملء القائمة بالموظفين الآخرين فقط
+    // ملء قائمة الموظفين الآخرين
     const select = document.getElementById('otherEmployeeSelect');
-    select.innerHTML = ''; // تفريغ القائمة
-    
-    employees.forEach(emp => {
-        if (emp.id !== currentEmployeeId) {
-            const option = document.createElement('option');
-            option.value = emp.id;
-            option.text = `${emp.name} (التوكة: ${emp.shift || 'بدون'})`;
-            select.appendChild(option);
-        }
-    });
+    if(select) {
+        select.innerHTML = '<option value="">-- اختر الزميل للمبادلة معه --</option>';
+        employees.forEach(emp => {
+            if (emp.id !== currentEmployeeId) {
+                const option = document.createElement('option');
+                option.value = emp.id;
+                option.text = `${emp.name} [توكته: ${emp.shift || 'بدون'}]`;
+                select.appendChild(option);
+            }
+        });
+    }
 
-    document.getElementById('shiftToggleModal').style.display = 'flex';
+    // إظهار النافذة
+    const modal = document.getElementById('shiftToggleModal');
+    if(modal) {
+        modal.style.display = 'flex';
+    }
 }
 
-// 2. تنفيذ عملية التبادل (Swap)
 function confirmShiftSwap() {
     const otherEmpId = document.getElementById('otherEmployeeSelect').value;
-    
+    if (!otherEmpId) {
+        alert("يرجى اختيار موظف للتبادل معه");
+        return;
+    }
+
     const emp1Index = employees.findIndex(e => e.id === currentEmployeeId);
     const emp2Index = employees.findIndex(e => e.id === otherEmpId);
 
     if (emp1Index !== -1 && emp2Index !== -1) {
-        // عملية التبديل (Swap)
-        const tempShift = employees[emp1Index].shift;
-        employees[emp1Index].shift = employees[emp2Index].shift;
-        employees[emp2Index].shift = tempShift;
+        // عملية التبديل
+        const shift1 = employees[emp1Index].shift;
+        const shift2 = employees[emp2Index].shift;
 
-        // حفظ وتحديث
+        employees[emp1Index].shift = shift2;
+        employees[emp2Index].shift = shift1;
+
         saveToLocalStorage();
-        showToast(`تم التبادل بنجاح بين ${employees[emp1Index].name} و ${employees[emp2Index].name}`);
+        showToast(`تم تبادل التوكات بين ${employees[emp1Index].name} و ${employees[emp2Index].name}`);
         
         closeShiftModal();
-        viewEmployeeProfile(currentEmployeeId); // تحديث عرض البروفايل الحالي
-        if(typeof renderSchedule === "function") renderSchedule(); // تحديث الجدول العام
+        viewEmployeeProfile(currentEmployeeId); // تحديث البروفايل فوراً
+        if(typeof renderSchedule === "function") renderSchedule(); 
     }
 }
 
@@ -1955,26 +1988,9 @@ function closeShiftModal() {
     document.getElementById('shiftToggleModal').style.display = 'none';
 }
     </script>
-    <div id="shiftToggleModal" class="modal">
-    <div class="modal-content" style="max-width: 450px;">
-        <div class="modal-header">
-            <h3>تبادل توكة مع زميل</h3>
-            <button onclick="closeShiftModal()" style="background:none; border:none; font-size:20px; cursor:pointer;">&times;</button>
-        </div>
-        <div class="modal-body">
-            <p id="currentEmpInfo" style="font-size: 0.9rem; color: #666; margin-bottom: 15px;"></p>
-            <label>اختر الزميل للتبادل معه:</label>
-            <select id="otherEmployeeSelect" class="form-control" style="width: 100%; margin-top: 10px; padding: 10px; border-radius: 8px;">
-                </select>
-        </div>
-        <div class="modal-footer" style="display: flex; gap: 10px; margin-top: 20px;">
-            <button onclick="confirmShiftSwap()" class="btn-primary" style="flex: 1; padding: 10px;">تنفيذ التبادل</button>
-            <button onclick="closeShiftModal()" class="btn-secondary" style="flex: 1; padding: 10px;">إلغاء</button>
-        </div>
-    </div>
-</div>
 </body>
 </html>
+
 
 
 
