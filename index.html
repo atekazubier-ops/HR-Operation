@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/presto.app/">
     
-    <title>Presto 11OP</title>
+    <title>Presto 111OP</title>
     
     <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -298,30 +298,7 @@
                 <input type="file" id="import-file" style="display: none" accept=".json" onchange="importData(this)">
             </div>
         </aside>
-<div id="shiftSwapModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:99999; justify-content:center; align-items:center;">
-    <div class="modal-content" style="max-width: 450px; background:white; padding:20px; border-radius:20px;">
-        <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:10px;">
-            <h3 style="margin:0;"><i class="fas fa-exchange-alt" style="color:#9b59b6;"></i> طلب تبادل توكة</h3>
-            <button class="close-modal" onclick="closeShiftSwapModal()" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
-        </div>
-        <div class="modal-body" style="padding:15px 0;">
-            <div id="swapSourceDetails" style="background: #f8f0ff; padding: 15px; border-radius: 12px; margin-bottom: 20px; border-right: 5px solid #9b59b6; font-size:0.9rem;"></div>
-            
-            <div class="form-group" style="margin-bottom:15px;">
-                <label style="display:block; margin-bottom:8px; font-weight:bold;">اختر الموظف البديل:</label>
-                <select id="swapTargetSelect" class="form-control" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd;"></select>
-            </div>
 
-            <div class="form-group">
-                <label style="display:block; margin-bottom:8px; font-weight:bold;">ملاحظات:</label>
-                <textarea id="swapNotes" class="form-control" placeholder="اختياري..." style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; height:70px;"></textarea>
-            </div>
-        </div>
-        <div class="modal-footer" style="padding-top:15px;">
-            <button class="btn-main" onclick="processShiftSwap()" style="width: 100%; background:#9b59b6; color:white; border:none; padding:12px; border-radius:12px; cursor:pointer; font-weight:bold;">اعتماد التبادل وحفظ في السجل</button>
-        </div>
-    </div>
-</div>
         <div class="modal-footer">
             <button class="btn-main" onclick="processShiftSwap()" style="width: 100%;">اعتماد التبادل الفوري</button>
         </div>
@@ -2045,8 +2022,33 @@ function closeShiftSwapModal() {
     if(modal) modal.style.display = 'none';
 }
     </script>
+    <div id="shiftSwapModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:99999; justify-content:center; align-items:center;">
+    <div class="modal-content" style="max-width: 450px; background:white; padding:20px; border-radius:20px;">
+        <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:10px;">
+            <h3 style="margin:0;"><i class="fas fa-exchange-alt" style="color:#9b59b6;"></i> طلب تبادل توكة</h3>
+            <button class="close-modal" onclick="closeShiftSwapModal()" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:15px 0;">
+            <div id="swapSourceDetails" style="background: #f8f0ff; padding: 15px; border-radius: 12px; margin-bottom: 20px; border-right: 5px solid #9b59b6; font-size:0.9rem;"></div>
+            
+            <div class="form-group" style="margin-bottom:15px;">
+                <label style="display:block; margin-bottom:8px; font-weight:bold;">اختر الموظف البديل:</label>
+                <select id="swapTargetSelect" class="form-control" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd;"></select>
+            </div>
+
+            <div class="form-group">
+                <label style="display:block; margin-bottom:8px; font-weight:bold;">ملاحظات:</label>
+                <textarea id="swapNotes" class="form-control" placeholder="اختياري..." style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; height:70px;"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer" style="padding-top:15px;">
+            <button class="btn-main" onclick="processShiftSwap()" style="width: 100%; background:#9b59b6; color:white; border:none; padding:12px; border-radius:12px; cursor:pointer; font-weight:bold;">اعتماد التبادل وحفظ في السجل</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
+
 
 
 
