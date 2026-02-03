@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/presto.app/">
     
-    <title>Presto 1OP</title>
+    <title>Presto OP</title>
     
     <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -559,21 +559,21 @@
             </div>
         </div>
     </div>
-   <div id="shiftToggleModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:99999; justify-content:center; align-items:center;">
-    <div class="modal-content" style="background:white; padding:25px; border-radius:20px; width:90%; max-width:400px; position:relative;">
-        <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-            <h3 style="margin:0; color:var(--primary);">🔄 تبادل التوكة</h3>
-            <button onclick="closeShiftModal()" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+<div id="shiftToggleModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:99999; justify-content:center; align-items:center;">
+    <div class="modal-content" style="background:white; padding:25px; border-radius:20px; width:90%; max-width:400px; position:relative; direction:rtl;">
+        <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;">
+            <h3 style="margin:0; color:#ff6b4a;">🔄 تبادل التوكة</h3>
+            <button onclick="closeShiftModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#999;">&times;</button>
         </div>
         <div class="modal-body">
-            <p id="currentEmpInfo" style="font-size: 14px; background: #f8f9fa; padding: 10px; border-radius: 8px; border-right: 4px solid var(--primary);"></p>
-            <label style="display:block; margin: 15px 0 5px;">اختر الزميل للمبادلة معه:</label>
-            <select id="otherEmployeeSelect" class="form-control" style="width:100%; padding:10px; border-radius:10px;">
+            <p id="currentEmpInfo" style="font-size: 14px; background: #fff5f2; padding: 12px; border-radius: 10px; border-right: 4px solid #ff6b4a; color: #444;"></p>
+            <label style="display:block; margin: 15px 0 8px; font-weight:bold;">اختر الزميل للمبادلة معه:</label>
+            <select id="otherEmployeeSelect" class="form-control" style="width:100%; padding:12px; border-radius:12px; border:1px solid #ddd; background:#f9f9f9;">
                 </select>
         </div>
         <div class="modal-footer" style="display:flex; gap:10px; margin-top:20px;">
-            <button onclick="confirmShiftSwap()" class="btn-main" style="flex:1; border-radius:10px;">تأكيد التبديل</button>
-            <button onclick="closeShiftModal()" class="btn-secondary" style="flex:1; border-radius:10px;">إلغاء</button>
+            <button onclick="confirmShiftSwap()" class="btn-main" style="flex:2; background:#ff6b4a; color:white; border:none; padding:12px; border-radius:12px; cursor:pointer; font-weight:bold;">تأكيد التبديل</button>
+            <button onclick="closeShiftModal()" class="btn-secondary" style="flex:1; background:#eee; border:none; padding:12px; border-radius:12px; cursor:pointer;">إلغاء</button>
         </div>
     </div>
 </div>
@@ -1894,69 +1894,62 @@
             link.click();
             document.body.removeChild(link);
         };
-     let currentEmployeeId = null;
+let currentEmployeeId = null;
 
 function toggleEmployeeShift() {
-    // جلب الـ ID من الحقل المخفي في صفحة البروفايل
     currentEmployeeId = document.getElementById('edit-doc-id').value;
     const currentEmp = employees.find(e => e.id === currentEmployeeId);
     
     if (!currentEmp) {
-        alert("يرجى اختيار موظف أولاً");
+        showToast("يرجى اختيار موظف أولاً", "error");
         return;
     }
 
-    // تحديث النص في النافذة
+    // تحديث نص الموظف الحالي
     const infoText = document.getElementById('currentEmpInfo');
     if(infoText) {
-        infoText.innerText = `تبديل توكة الموظف: ${currentEmp.name} (التوكة الحالية: ${currentEmp.shift || 'غير محددة'})`;
+        infoText.innerText = `الموظف: ${currentEmp.name}\nالتوكة الحالية: ${currentEmp.shift || 'بدون'}`;
     }
 
     // ملء قائمة الموظفين الآخرين
     const select = document.getElementById('otherEmployeeSelect');
     if(select) {
-        select.innerHTML = '<option value="">-- اختر الزميل للمبادلة معه --</option>';
+        select.innerHTML = '<option value="">-- اختر الزميل --</option>';
         employees.forEach(emp => {
             if (emp.id !== currentEmployeeId) {
                 const option = document.createElement('option');
                 option.value = emp.id;
-                option.text = `${emp.name} [توكته: ${emp.shift || 'بدون'}]`;
+                option.text = `${emp.name} (${emp.shift || 'بدون'})`;
                 select.appendChild(option);
             }
         });
     }
 
     // إظهار النافذة
-    const modal = document.getElementById('shiftToggleModal');
-    if(modal) {
-        modal.style.display = 'flex';
-    }
+    document.getElementById('shiftToggleModal').style.display = 'flex';
 }
 
 function confirmShiftSwap() {
     const otherEmpId = document.getElementById('otherEmployeeSelect').value;
     if (!otherEmpId) {
-        alert("يرجى اختيار موظف للتبادل معه");
+        showToast("يرجى اختيار زميل للتبادل", "error");
         return;
     }
 
-    const emp1Index = employees.findIndex(e => e.id === currentEmployeeId);
-    const emp2Index = employees.findIndex(e => e.id === otherEmpId);
+    const idx1 = employees.findIndex(e => e.id === currentEmployeeId);
+    const idx2 = employees.findIndex(e => e.id === otherEmpId);
 
-    if (emp1Index !== -1 && emp2Index !== -1) {
-        // عملية التبديل
-        const shift1 = employees[emp1Index].shift;
-        const shift2 = employees[emp2Index].shift;
-
-        employees[emp1Index].shift = shift2;
-        employees[emp2Index].shift = shift1;
+    if (idx1 !== -1 && idx2 !== -1) {
+        // عملية التبديل (Swap)
+        const tempShift = employees[idx1].shift;
+        employees[idx1].shift = employees[idx2].shift;
+        employees[idx2].shift = tempShift;
 
         saveToLocalStorage();
-        showToast(`تم تبادل التوكات بين ${employees[emp1Index].name} و ${employees[emp2Index].name}`);
+        showToast("تم تبادل التوكات بنجاح");
         
         closeShiftModal();
-        viewEmployeeProfile(currentEmployeeId); // تحديث البروفايل فوراً
-        if(typeof renderSchedule === "function") renderSchedule(); 
+        viewEmployeeProfile(currentEmployeeId); // لتحديث البيانات المعروضة فوراً
     }
 }
 
@@ -1966,6 +1959,7 @@ function closeShiftModal() {
     </script>
 </body>
 </html>
+
 
 
 
