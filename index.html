@@ -1223,6 +1223,7 @@
                     <div class="action-card-btn" onclick="openActionModal('permission', '${emp.id}')"><i class="fas fa-clock" style="color:#3498db"></i><span>طلب إذن</span></div>
                     <div class="action-card-btn" onclick="openActionModal('overtime', '${emp.id}')"><i class="fas fa-plus-circle" style="color:#2ecc71"></i><span>عمل إضافي</span></div>
                     <div class="action-card-btn" onclick="openActionModal('task', '${emp.id}')"><i class="fas fa-briefcase" style="color:#9b59b6"></i><span>مهمة عمل</span></div>
+                    <div class="action-card-btn" onclick="toggleEmployeeShift()"> <i class="fas fa-exchange-alt" style="color: #9b59b6;"></i><span>تبديل توكة</span></div>
                     <div class="action-card-btn" onclick="openActionModal('warning', '${emp.id}')"><i class="fas fa-exclamation-triangle" style="color:#e74c3c"></i><span>إنذار</span></div>
                 </div>
                 <div class="profile-info-grid" style="margin-top:30px;"><div class="profile-info-box"><span class="profile-label">الرقم الوظيفي</span><span class="profile-value">${emp.empId}</span></div><div class="profile-info-box"><span class="profile-label">المرتب</span><span class="profile-value">${emp.salary || '0'} دينار</span></div><div class="profile-info-box"><span class="profile-label">فصيلة الدم</span><span class="profile-value">${emp.bloodType || 'غير مسجل'}</span></div><div class="profile-info-box"><span class="profile-label">الهاتف</span><span class="profile-value">${emp.phone || '---'}</span></div><div class="profile-info-box"><span class="profile-label">البريد</span><span class="profile-value">${emp.email || '---'}</span></div><div class="profile-info-box"><span class="profile-label">الانضمام</span><span class="profile-value">${emp.joining || '---'}</span></div></div>
@@ -1875,6 +1876,30 @@
             link.click();
             document.body.removeChild(link);
         };
+        // دالة تبديل التوكة
+function toggleEmployeeShift() {
+    const empId = document.getElementById('edit-doc-id').value; // الحصول على معرف الموظف الحالي
+    if (!empId) return;
+
+    // مثال لمنطق التبديل: يمكنك تخصيص هذا الجزء لفتح نافذة اختيار التوكة الجديدة
+    const newShift = prompt("أدخل التوكة الجديدة (مثلاً: 08:00 - 15:00):");
+    
+    if (newShift) {
+        // هنا يتم تحديث بيانات الموظف في المصفوفة المحلية أو قاعدة البيانات
+        const empIndex = employees.findIndex(e => e.id === empId);
+        if (empIndex !== -1) {
+            employees[empIndex].shift = newShift; // تفترض وجود حقل shift
+            
+            // تحديث الواجهة وتخزين البيانات
+            saveToLocalStorage(); 
+            showToast("تم تبديل التوكة بنجاح إلى: " + newShift);
+            
+            // إعادة عرض الملف الشخصي لتحديث البيانات
+            viewEmployeeProfile(empId); 
+        }
+    }
+}
     </script>
 </body>
 </html>
+
