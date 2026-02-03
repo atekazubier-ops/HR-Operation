@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/presto.app/">
     
-    <title>Presto 1OP</title>
+    <title>Presto OP</title>
     
     <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -299,11 +299,6 @@
             </div>
         </aside>
 
-        <div class="modal-footer">
-            <button class="btn-main" onclick="processShiftSwap()" style="width: 100%;">اعتماد التبادل الفوري</button>
-        </div>
-    </div>
-</div>
         <div class="workspace">
             <header class="top-bar">
                 <h2 id="page-title" style="margin: 0; font-weight: 800;">لوحة التحكم</h2>
@@ -564,7 +559,6 @@
             </div>
         </div>
     </div>
-    
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-auth.js";
@@ -1228,7 +1222,6 @@
                     <div class="action-card-btn" onclick="openActionModal('leave', '${emp.id}', ${currentBalance})"><i class="fas fa-plane-departure" style="color:#e67e22"></i><span>طلب إجازة</span></div>
                     <div class="action-card-btn" onclick="openActionModal('permission', '${emp.id}')"><i class="fas fa-clock" style="color:#3498db"></i><span>طلب إذن</span></div>
                     <div class="action-card-btn" onclick="openActionModal('overtime', '${emp.id}')"><i class="fas fa-plus-circle" style="color:#2ecc71"></i><span>عمل إضافي</span></div>
-                     <div class="action-card-btn" onclick="openShiftSwapModal()"><i class="fas fa-exchange-alt" style="color: #9b59b6;"></i><span>تبديل توكة</span></div>
                     <div class="action-card-btn" onclick="openActionModal('task', '${emp.id}')"><i class="fas fa-briefcase" style="color:#9b59b6"></i><span>مهمة عمل</span></div>
                     <div class="action-card-btn" onclick="openActionModal('warning', '${emp.id}')"><i class="fas fa-exclamation-triangle" style="color:#e74c3c"></i><span>إنذار</span></div>
                 </div>
@@ -1882,179 +1875,6 @@
             link.click();
             document.body.removeChild(link);
         };
-        let swapSourceId = null;
-
-// دالة فتح النافذة وتحضير البيانات
-function openShiftSwapModal() {
-    swapSourceId = document.getElementById('edit-doc-id').value;
-    const currentEmp = employees.find(e => e.id === swapSourceId);
-    
-    if (!currentEmp) {
-        showToast("خطأ: لم يتم تحديد الموظف", "error");
-        return;
-    }
-
-    // عرض معلومات الموظف الحالي
-    document.getElementById('currentEmpSwapInfo').innerHTML = 
-        `الموظف الحالي: ${currentEmp.name}<br>التوكة الحالية: ${currentEmp.shift || 'بدون'}`;
-
-    // ملء قائمة الزملاء
-    const select = document.getElementById('peerEmployeeSelect');
-    select.innerHTML = '<option value=\"\">-- اختر الزميل للمبادلة --</option>';
-    
-    employees.forEach(emp => {
-        if (emp.id !== swapSourceId) {
-            const option = document.createElement('option');
-            option.value = emp.id;
-            option.text = `${emp.name} (التوكة: ${emp.shift || 'بدون'})`;
-            select.appendChild(option);
-        }
-    });
-
-    // إظهار النافذة بنفس حركة نوافذ الإذن والمهمة
-    document.getElementById('shiftSwapModal').style.display = 'flex';
-}
-
-// دالة تنفيذ التبادل الفعلي
-function executeShiftSwap() {
-    const targetEmpId = document.getElementById('peerEmployeeSelect').value;
-    
-    if (!targetEmpId) {
-        showToast("يرجى اختيار زميل للمبادلة أولاً", "warning");
-        return;
-    }
-
-    const sourceIdx = employees.findIndex(e => e.id === swapSourceId);
-    const targetIdx = employees.findIndex(e => e.id === targetEmpId);
-
-    if (sourceIdx !== -1 && targetIdx !== -1) {
-        // عملية التبادل
-        const temp = employees[sourceIdx].shift;
-        employees[sourceIdx].shift = employees[targetIdx].shift;
-        employees[targetIdx].shift = temp;
-
-        // حفظ البيانات
-        saveToLocalStorage();
-        showToast(`تم التبادل بنجاح بين ${employees[sourceIdx].name} و ${employees[targetIdx].name}`);
-        
-        // إغلاق وتحديث
-        closeShiftSwapModal();
-        viewEmployeeProfile(swapSourceId); // تحديث البروفايل لرؤية النتيجة
-    }
-}
-
-function closeShiftSwapModal() {
-    document.getElementById('shiftSwapModal').style.display = 'none';
-}
-     let currentSwapEmployeeId = null;
-
-function openShiftSwapModal() {
-    currentSwapEmployeeId = document.getElementById('edit-doc-id').value;
-    const emp = employees.find(e => e.id === currentSwapEmployeeId);
-    if (!emp) return;
-
-    // تحضير بيانات الموظف الحالي في النافذة
-    const detailsBox = document.getElementById('swapSourceDetails');
-    if(detailsBox) {
-        detailsBox.innerHTML = `<strong>الموظف الحالي:</strong> ${emp.name}<br><strong>التوكة الحالية:</strong> ${emp.shift || 'غير محددة'}`;
-    }
-
-    // ملء قائمة الزملاء للمبادلة
-    const select = document.getElementById('swapTargetSelect');
-    if(select) {
-        select.innerHTML = '<option value="">-- اختر الزميل للمبادلة --</option>';
-        employees.forEach(other => {
-            if (other.id !== currentSwapEmployeeId) {
-                const option = document.createElement('option');
-                option.value = other.id;
-                option.text = `${other.name} (توكة: ${other.shift || 'بدون'})`;
-                select.appendChild(option);
-            }
-        });
-    }
-
-    // إظهار النافذة بتأثير الـ Flex مثل باقي النوافذ
-    const modal = document.getElementById('shiftSwapModal');
-    if(modal) modal.style.display = 'flex';
-}
-
-function processShiftSwap() {
-    const targetId = document.getElementById('swapTargetSelect').value;
-    const notes = document.getElementById('swapNotes').value || "تبادل توكة";
-    
-    if (!targetId) {
-        showToast("يرجى اختيار زميل لإتمام التبادل", "error");
-        return;
-    }
-
-    const sIdx = employees.findIndex(e => e.id === currentSwapEmployeeId);
-    const tIdx = employees.findIndex(e => e.id === targetId);
-
-    if (sIdx !== -1 && tIdx !== -1) {
-        const sEmp = employees[sIdx];
-        const tEmp = employees[tIdx];
-
-        // تبديل التوكات
-        const oldSShift = sEmp.shift;
-        sEmp.shift = tEmp.shift;
-        tEmp.shift = oldSShift;
-
-        // إضافة العملية للسجل (Logs) بنفس فكرة الأذونات والمهمات
-        if (!sEmp.logs) sEmp.logs = [];
-        sEmp.logs.push({
-            type: 'تبادل توكة',
-            date: new Date().toLocaleString('ar-EG'),
-            details: `تبادل مع ${tEmp.name}`,
-            notes: notes
-        });
-
-        saveToLocalStorage();
-        showToast(`تم التبادل بنجاح: ${sEmp.name} ↔️ ${tEmp.name}`);
-        
-        closeShiftSwapModal();
-        viewEmployeeProfile(currentSwapEmployeeId); // لتحديث عرض السجلات والتوكة فوراً
-        if(window.renderSchedule) renderSchedule(); // تحديث الجدول العام
-    }
-}
-
-function closeShiftSwapModal() {
-    const modal = document.getElementById('shiftSwapModal');
-    if(modal) modal.style.display = 'none';
-}
     </script>
-    <div id="shiftSwapModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:99999; justify-content:center; align-items:center;">
-    <div class="modal-content" style="max-width: 450px; background:white; padding:20px; border-radius:20px; direction:rtl; text-align:right;">
-        <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:10px;">
-            <h3 style="margin:0;"><i class="fas fa-exchange-alt" style="color:#9b59b6;"></i> طلب تبادل توكة</h3>
-            <button onclick="closeShiftSwapModal()" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
-        </div>
-        <div class="modal-body" style="padding:15px 0;">
-            <div id="swapSourceDetails" style="background: #f8f0ff; padding: 12px; border-radius: 12px; margin-bottom: 15px; border-right: 5px solid #9b59b6; font-size:0.9rem;"></div>
-            
-            <div class="form-group" style="margin-bottom:15px;">
-                <label style="display:block; margin-bottom:5px; font-weight:bold;">اختر الموظف البديل:</label>
-                <select id="swapTargetSelect" class="form-control" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd;"></select>
-            </div>
-
-            <div class="form-group">
-                <label style="display:block; margin-bottom:5px; font-weight:bold;">ملاحظات:</label>
-                <textarea id="swapNotes" class="form-control" placeholder="اختياري..." style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; height:60px;"></textarea>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-main" onclick="processShiftSwap()" style="width: 100%; background:#9b59b6; color:white; border:none; padding:12px; border-radius:12px; cursor:pointer; font-weight:bold;">اعتماد التبادل</button>
-        </div>
-    </div>
-</div>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
