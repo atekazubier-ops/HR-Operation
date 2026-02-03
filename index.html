@@ -1894,30 +1894,6 @@
             link.click();
             document.body.removeChild(link);
         };
-        // دالة تبديل التوكة
-function toggleEmployeeShift() {
-    const empId = document.getElementById('edit-doc-id').value; // الحصول على معرف الموظف الحالي
-    if (!empId) return;
-
-    // مثال لمنطق التبديل: يمكنك تخصيص هذا الجزء لفتح نافذة اختيار التوكة الجديدة
-    const newShift = prompt("أدخل التوكة الجديدة (مثلاً: 08:00 - 15:00):");
-    
-    if (newShift) {
-        // هنا يتم تحديث بيانات الموظف في المصفوفة المحلية أو قاعدة البيانات
-        const empIndex = employees.findIndex(e => e.id === empId);
-        if (empIndex !== -1) {
-            employees[empIndex].shift = newShift; // تفترض وجود حقل shift
-            
-            // تحديث الواجهة وتخزين البيانات
-            saveToLocalStorage(); 
-            showToast("تم تبديل التوكة بنجاح إلى: " + newShift);
-            
-            // إعادة عرض الملف الشخصي لتحديث البيانات
-            viewEmployeeProfile(empId); 
-        }
-    }
-}
-   
      let currentEmployeeId = null;
 
 function toggleEmployeeShift() {
@@ -1990,6 +1966,7 @@ function closeShiftModal() {
     </script>
 </body>
 </html>
+
 
 
 
