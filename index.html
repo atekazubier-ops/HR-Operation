@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/presto.app/">
     
-    <title>Presto OP</title>
+    <title>Presto 1OP</title>
     
     <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -1899,7 +1899,80 @@ function toggleEmployeeShift() {
         }
     }
 }
+   <div id="shiftToggleModal" class="modal">
+    <div class="modal-content" style="max-width: 450px;">
+        <div class="modal-header">
+            <h3>تبادل توكة مع زميل</h3>
+            <button onclick="closeShiftModal()" style="background:none; border:none; font-size:20px; cursor:pointer;">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="currentEmpInfo" style="font-size: 0.9rem; color: #666; margin-bottom: 15px;"></p>
+            <label>اختر الزميل للتبادل معه:</label>
+            <select id="otherEmployeeSelect" class="form-control" style="width: 100%; margin-top: 10px; padding: 10px; border-radius: 8px;">
+                </select>
+        </div>
+        <div class="modal-footer" style="display: flex; gap: 10px; margin-top: 20px;">
+            <button onclick="confirmShiftSwap()" class="btn-primary" style="flex: 1; padding: 10px;">تنفيذ التبادل</button>
+            <button onclick="closeShiftModal()" class="btn-secondary" style="flex: 1; padding: 10px;">إلغاء</button>
+        </div>
+    </div>
+</div>
+       let currentEmployeeId = null;
+
+// 1. فتح النافذة وتجهيز قائمة الموظفين
+function toggleEmployeeShift() {
+    currentEmployeeId = document.getElementById('edit-doc-id').value;
+    const currentEmp = employees.find(e => e.id === currentEmployeeId);
+    
+    if (!currentEmp) return;
+
+    // عرض بيانات الموظف الحالي
+    document.getElementById('currentEmpInfo').innerText = `تبديل توكة (${currentEmp.name}) الحالية: [${currentEmp.shift || 'غير محددة'}]`;
+
+    // ملء القائمة بالموظفين الآخرين فقط
+    const select = document.getElementById('otherEmployeeSelect');
+    select.innerHTML = ''; // تفريغ القائمة
+    
+    employees.forEach(emp => {
+        if (emp.id !== currentEmployeeId) {
+            const option = document.createElement('option');
+            option.value = emp.id;
+            option.text = `${emp.name} (التوكة: ${emp.shift || 'بدون'})`;
+            select.appendChild(option);
+        }
+    });
+
+    document.getElementById('shiftToggleModal').style.display = 'flex';
+}
+
+// 2. تنفيذ عملية التبادل (Swap)
+function confirmShiftSwap() {
+    const otherEmpId = document.getElementById('otherEmployeeSelect').value;
+    
+    const emp1Index = employees.findIndex(e => e.id === currentEmployeeId);
+    const emp2Index = employees.findIndex(e => e.id === otherEmpId);
+
+    if (emp1Index !== -1 && emp2Index !== -1) {
+        // عملية التبديل (Swap)
+        const tempShift = employees[emp1Index].shift;
+        employees[emp1Index].shift = employees[emp2Index].shift;
+        employees[emp2Index].shift = tempShift;
+
+        // حفظ وتحديث
+        saveToLocalStorage();
+        showToast(`تم التبادل بنجاح بين ${employees[emp1Index].name} و ${employees[emp2Index].name}`);
+        
+        closeShiftModal();
+        viewEmployeeProfile(currentEmployeeId); // تحديث عرض البروفايل الحالي
+        if(typeof renderSchedule === "function") renderSchedule(); // تحديث الجدول العام
+    }
+}
+
+function closeShiftModal() {
+    document.getElementById('shiftToggleModal').style.display = 'none';
+}
     </script>
 </body>
 </html>
+
 
