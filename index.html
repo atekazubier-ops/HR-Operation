@@ -1899,24 +1899,7 @@ function toggleEmployeeShift() {
         }
     }
 }
-   <div id="shiftToggleModal" class="modal">
-    <div class="modal-content" style="max-width: 450px;">
-        <div class="modal-header">
-            <h3>تبادل توكة مع زميل</h3>
-            <button onclick="closeShiftModal()" style="background:none; border:none; font-size:20px; cursor:pointer;">&times;</button>
-        </div>
-        <div class="modal-body">
-            <p id="currentEmpInfo" style="font-size: 0.9rem; color: #666; margin-bottom: 15px;"></p>
-            <label>اختر الزميل للتبادل معه:</label>
-            <select id="otherEmployeeSelect" class="form-control" style="width: 100%; margin-top: 10px; padding: 10px; border-radius: 8px;">
-                </select>
-        </div>
-        <div class="modal-footer" style="display: flex; gap: 10px; margin-top: 20px;">
-            <button onclick="confirmShiftSwap()" class="btn-primary" style="flex: 1; padding: 10px;">تنفيذ التبادل</button>
-            <button onclick="closeShiftModal()" class="btn-secondary" style="flex: 1; padding: 10px;">إلغاء</button>
-        </div>
-    </div>
-</div>
+   
        let currentEmployeeId = null;
 
 // 1. فتح النافذة وتجهيز قائمة الموظفين
@@ -1972,7 +1955,26 @@ function closeShiftModal() {
     document.getElementById('shiftToggleModal').style.display = 'none';
 }
     </script>
+    <div id="shiftToggleModal" class="modal">
+    <div class="modal-content" style="max-width: 450px;">
+        <div class="modal-header">
+            <h3>تبادل توكة مع زميل</h3>
+            <button onclick="closeShiftModal()" style="background:none; border:none; font-size:20px; cursor:pointer;">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="currentEmpInfo" style="font-size: 0.9rem; color: #666; margin-bottom: 15px;"></p>
+            <label>اختر الزميل للتبادل معه:</label>
+            <select id="otherEmployeeSelect" class="form-control" style="width: 100%; margin-top: 10px; padding: 10px; border-radius: 8px;">
+                </select>
+        </div>
+        <div class="modal-footer" style="display: flex; gap: 10px; margin-top: 20px;">
+            <button onclick="confirmShiftSwap()" class="btn-primary" style="flex: 1; padding: 10px;">تنفيذ التبادل</button>
+            <button onclick="closeShiftModal()" class="btn-secondary" style="flex: 1; padding: 10px;">إلغاء</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
+
 
 
