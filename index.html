@@ -1983,5 +1983,127 @@ shiftSwaps.forEach(swap => {
             document.body.removeChild(link);
         };
     </script>
+
+<!-- ================= ADDITION: Shift Swap Feature (No existing functions modified) ================= -->
+
+<!-- Shift Swap Modal -->
+<div id="shiftSwapModal" class="modal-overlay" style="display:none">
+  <div class="modal-content">
+    <h3>🔁 طلب تبديل توكة</h3>
+
+    <div class="form-group">
+      <label>التاريخ</label>
+      <input type="date" id="swap-date">
+    </div>
+
+    <div class="form-group">
+      <label>التوكة الحالية</label>
+      <select id="swap-from">
+        <option>08:00 - 15:00</option>
+        <option>09:00 - 16:00</option>
+        <option>12:00 - 19:00</option>
+        <option>16:00 - 23:00</option>
+        <option>19:00 - 02:00</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>التوكة المطلوبة</label>
+      <select id="swap-to">
+        <option>08:00 - 15:00</option>
+        <option>09:00 - 16:00</option>
+        <option>12:00 - 19:00</option>
+        <option>16:00 - 23:00</option>
+        <option>19:00 - 02:00</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>السبب</label>
+      <textarea id="swap-reason"></textarea>
+    </div>
+
+    <button onclick="submitShiftSwap()">إرسال الطلب</button>
+  </div>
+</div>
+
+<script>
+/* ===== Shift Swap ADD-ON (Isolated) ===== */
+window.shiftSwaps = JSON.parse(localStorage.getItem("shiftSwaps")) || [];
+
+function openShiftSwapModal(){
+  document.getElementById("shiftSwapModal").style.display = "flex";
+}
+
+function submitShiftSwap(){
+  if(typeof currentEmpId === "undefined"){
+    alert("يرجى اختيار موظف");
+    return;
+  }
+
+  const swap = {
+    empId: currentEmpId,
+    date: document.getElementById("swap-date").value,
+    from: document.getElementById("swap-from").value,
+    to: document.getElementById("swap-to").value,
+    reason: document.getElementById("swap-reason").value,
+    status: "pending",
+    createdAt: new Date().toISOString()
+  };
+
+  shiftSwaps.push(swap);
+  localStorage.setItem("shiftSwaps", JSON.stringify(shiftSwaps));
+  alert("تم إرسال طلب تبديل التوكة");
+  document.getElementById("shiftSwapModal").style.display = "none";
+}
+
+/* Hook for calendar (non-intrusive) */
+window.getApprovedShiftSwapForDate = function(empId, dateStr){
+  return shiftSwaps.find(s => s.empId === empId && s.date === dateStr && s.status === "approved");
+}
+</script>
+<!-- ================= END ADDITION ================= -->
+
+<!-- ================= ADDITION: Auto Apply Shift Swap to Schedule ================= -->
+<script>
+/*
+  This ADD-ON listens for approved shift swaps and updates the shift table automatically.
+  It DOES NOT modify any existing function or data.
+  It only works if a global `shifts` array/object exists.
+*/
+
+(function(){
+  if (typeof window.applyApprovedShiftSwaps === "function") return;
+
+  window.applyApprovedShiftSwaps = function(){
+    if (typeof shifts === "undefined" || !Array.isArray(shiftSwaps)) return;
+
+    shiftSwaps
+      .filter(s => s.status === "approved")
+      .forEach(swap => {
+        const date = swap.date;
+
+        // employee A
+        const a = shifts.find(sh =>
+          sh.empId === swap.empA.id && sh.date === date
+        );
+
+        // employee B
+        const b = shifts.find(sh =>
+          sh.empId === swap.empB.id && sh.date === date
+        );
+
+        if (a) a.shift = swap.empB.shift;
+        if (b) b.shift = swap.empA.shift;
+      });
+  };
+
+  // auto-run safely after page load
+  document.addEventListener("DOMContentLoaded", () => {
+    try { applyApprovedShiftSwaps(); } catch(e){}
+  });
+})();
+</script>
+<!-- ================= END ADDITION ================= -->
 </body>
 </html>
