@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/presto.app/">
     
-    <title>Presto 1OP</title>
+    <title>Presto 11OP</title>
     
     <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -666,7 +666,12 @@
         let unsubscribePermissions = null;
         let allPermissionsGlobal = [];
         let allSwapsGlobal = [];
-
+        
+onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'swaps')), (snap) => {
+            allSwapsGlobal = [];
+            snap.forEach(doc => allSwapsGlobal.push({ id: doc.id, ...doc.data() }));
+            if (!document.getElementById('view-calendar').classList.contains('hidden')) renderMonthlyCalendar();
+        });
         onAuthStateChanged(auth, (user) => {
             const loadingScreen = document.getElementById('loading-screen');
             const loginView = document.getElementById('login-view');
@@ -1954,6 +1959,7 @@ if (typeof allSwapsGlobal !== 'undefined') {
     </script>
 </body>
 </html>
+
 
 
 
