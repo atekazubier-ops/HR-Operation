@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/presto.app/">
     
-    <title>Presto OP</title>
+    <title>Presto 1OP</title>
     
     <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -559,6 +559,29 @@
             </div>
         </div>
     </div>
+
+    <div id="swapModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 500px;">
+        <h3><i class="fas fa-sync-alt" style="color: var(--primary);"></i> طلب تبديل توكة</h3>
+        <div class="form-group">
+            <label>التاريخ المراد تبديله</label>
+            <input type="date" id="swap-date">
+        </div>
+        <div class="form-group">
+            <label>الموظف الحالي</label>
+            <input type="text" id="swap-emp-name" disabled style="background: #eee;">
+            <input type="hidden" id="swap-emp-id">
+        </div>
+        <div class="form-group">
+            <label>الموظف البديل</label>
+            <select id="swap-target-select"></select>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button onclick="executeShiftSwap()" class="btn-main" style="flex: 1;">تأكيد التبديل</button>
+            <button onclick="closeModal('swapModal')" class="back-btn" style="margin:0;">إلغاء</button>
+        </div>
+    </div>
+</div>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-auth.js";
@@ -1222,6 +1245,7 @@
                     <div class="action-card-btn" onclick="openActionModal('leave', '${emp.id}', ${currentBalance})"><i class="fas fa-plane-departure" style="color:#e67e22"></i><span>طلب إجازة</span></div>
                     <div class="action-card-btn" onclick="openActionModal('permission', '${emp.id}')"><i class="fas fa-clock" style="color:#3498db"></i><span>طلب إذن</span></div>
                     <div class="action-card-btn" onclick="openActionModal('overtime', '${emp.id}')"><i class="fas fa-plus-circle" style="color:#2ecc71"></i><span>عمل إضافي</span></div>
+                    <div class="action-btn" onclick="openSwapFromProfile('${emp.id}')" title="تبديل توكة"><i class="fas fa-sync-alt"></i></div >
                     <div class="action-card-btn" onclick="openActionModal('task', '${emp.id}')"><i class="fas fa-briefcase" style="color:#9b59b6"></i><span>مهمة عمل</span></div>
                     <div class="action-card-btn" onclick="openActionModal('warning', '${emp.id}')"><i class="fas fa-exclamation-triangle" style="color:#e74c3c"></i><span>إنذار</span></div>
                 </div>
@@ -1231,6 +1255,7 @@
                     <div class="sub-card"><h4><i class="fas fa-plane"></i> سجل الإجازات</h4><table class="data-table" style="margin-top:0;"><thead><tr><th>التاريخ</th><th>النوع</th><th>المدة</th><th>إجراءات</th></tr></thead><tbody>${leaves.map(l => `<tr><td>${l.date}</td><td>${l.type}</td><td>${l.daysCount} يوم</td><td><button onclick="editLeave('${l.id}', '${emp.id}', '${l.date}', '${l.type}', '${l.daysCount}', '${l.note}')" class="btn-icon edit"><i class="fas fa-edit"></i></button><button onclick="deleteAction('leaves', '${l.id}', '${emp.id}')" class="btn-icon delete"><i class="fas fa-trash-alt"></i></button></td></tr>`).join('') || '<tr><td colspan="4" style="text-align:center">لا يوجد</td></tr>'}</tbody></table></div>
                     <div class="sub-card"><h4><i class="fas fa-clock"></i> سجل الأذونات</h4><table class="data-table" style="margin-top:0;"><thead><tr><th>التاريخ</th><th>الساعات</th><th>إجراءات</th></tr></thead><tbody>${permissions.map(p => `<tr><td>${p.date}</td><td>${p.hours}</td><td><button onclick="editPermission('${p.id}', '${emp.id}', '${p.date}', '${p.hours}')" class="btn-icon edit"><i class="fas fa-edit"></i></button><button onclick="deleteAction('permissions', '${p.id}', '${emp.id}')" class="btn-icon delete"><i class="fas fa-trash-alt"></i></button></td></tr>`).join('') || '<tr><td colspan="3" style="text-align:center">لا يوجد</td></tr>'}</tbody></table></div>
                     <div class="sub-card"><h4><i class="fas fa-plus-circle"></i> العمل الإضافي</h4><table class="data-table" style="margin-top:0;"><thead><tr><th>التاريخ</th><th>الساعات</th><th>السبب</th><th>إجراءات</th></tr></thead><tbody>${overtime.map(o => `<tr><td>${o.date}</td><td>${o.hours}</td><td>${o.reason}</td><td><button onclick="editOvertime('${o.id}', '${emp.id}', '${o.date}', '${o.hours}', '${o.reason}')" class="btn-icon edit"><i class="fas fa-edit"></i></button><button onclick="deleteAction('overtime', '${o.id}', '${emp.id}')" class="btn-icon delete"><i class="fas fa-trash-alt"></i></button></td></tr>`).join('') || '<tr><td colspan="4" style="text-align:center">لا يوجد</td></tr>'}</tbody></table></div>
+                    <div class="sub-card" style="grid-column: span 2;"><h4><i class="fas fa-exchange-alt"></i> سجل تبديل التوكات (Shifts Swap)</h4><div id="swap-history-list" style="max-height: 200px; overflow-y: auto;"></div><button onclick="openSwapFromProfile('${emp.id}')" class="btn-main" style="margin-top: 15px; width: 100%; justify-content: center; background: var(--secondary);"><i class="fas fa-plus"></i> إجراء تبديل جديد</button></div>
                     <div class="sub-card"><h4><i class="fas fa-tasks"></i> مهمات العمل</h4><table class="data-table" style="margin-top:0;"><thead><tr><th>التاريخ</th><th>المهمة</th></tr></thead><tbody>${tasks.map(t => `<tr><td>${t.date}</td><td>${t.type}</td></tr>`).join('') || '<tr><td colspan="2" style="text-align:center">لا يوجد</td></tr>'}</tbody></table></div>
                     <div class="sub-card" style="grid-column: span 2;"><h4><i class="fas fa-exclamation-triangle"></i> سجل الإنذارات</h4><table class="data-table" style="margin-top:0;"><thead><tr><th>التاريخ</th><th>النوع</th><th>إجراءات</th></tr></thead><tbody>${warnings.map(w => `<tr><td>${w.date}</td><td>${w.type}</td><td><button onclick="editWarning('${w.id}', '${emp.id}', '${w.date}', '${w.type}')" class="btn-icon edit"><i class="fas fa-edit"></i></button><button onclick="deleteAction('warnings', '${w.id}', '${emp.id}')" class="btn-icon delete"><i class="fas fa-trash-alt"></i></button></td></tr>`).join('') || '<tr><td colspan="3" style="text-align:center">لا يوجد</td></tr>'}</tbody></table></div>
                 </div>
@@ -1875,6 +1900,59 @@
             link.click();
             document.body.removeChild(link);
         };
+
+        // 1. دالة فتح نافذة التبديل من ملف الموظف
+window.openSwapFromProfile = (empId) => {
+    const emp = employees.find(e => e.id === empId);
+    document.getElementById('swap-emp-name').value = emp.name;
+    document.getElementById('swap-emp-id').value = emp.id;
+    
+    // تعبئة قائمة الموظفين الآخرين
+    const select = document.getElementById('swap-target-select');
+    select.innerHTML = '<option value="">اختر البديل...</option>';
+    employees.forEach(other => {
+        if(other.id !== empId) {
+            select.innerHTML += `<option value="${other.id}">${other.name}</option>`;
+        }
+    });
+    
+    document.getElementById('swapModal').style.display = 'flex';
+};
+
+// 2. دالة التنفيذ والربط بالتقويم والجدول
+window.executeShiftSwap = () => {
+    const date = document.getElementById('swap-date').value;
+    const emp1Id = document.getElementById('swap-emp-id').value;
+    const emp2Id = document.getElementById('swap-target-select').value;
+
+    if(!date || !emp2Id) return alert("يرجى إكمال البيانات");
+
+    const emp1 = employees.find(e => e.id === emp1Id);
+    const emp2 = employees.find(e => e.id === emp2Id);
+
+    // تحديث سجل التبديل في بيانات الموظف (الأرشفة)
+    if(!emp1.swapLogs) emp1.swapLogs = [];
+    emp1.swapLogs.push({ date, with: emp2.name, time: new Date().toLocaleString() });
+
+    // تحديث البيانات في الجدول والتقويم (تغيير الشفت في المصفوفة)
+    // ملاحظة: تأكد من أن الموظفين لديهم كائن باسم 'shifts' لتخزين التوكات
+    const tempShift = emp1.shifts?.[date] || "شفت عادي";
+    if(!emp1.shifts) emp1.shifts = {};
+    if(!emp2.shifts) emp2.shifts = {};
+    
+    emp1.shifts[date] = emp2.shifts[date] || "شفت عادي";
+    emp2.shifts[date] = tempShift;
+
+    // حفظ البيانات وتحديث الشاشات
+    saveToLocalStorage(); // إذا كنت تستخدم الحفظ المحلي
+    renderSchedule();     // تحديث الجدول الأسبوعي
+    renderMonthlyCalendar(); // تحديث التقويم الشهري
+    showEmployeeProfile(emp1Id); // تحديث واجهة الملف الشخصي لرؤية السجل
+    
+    closeModal('swapModal');
+    showToast("تم التبديل وأرشفة العملية بنجاح");
+};
     </script>
 </body>
 </html>
+
