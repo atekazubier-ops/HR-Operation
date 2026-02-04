@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/presto.app/">
     
-    <title>Presto OP</title>
+    <title>Presto 1OP</title>
     
     <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -250,7 +250,6 @@
 .cell-vacation { background-color: #2ecc71; color: white; font-size: 10px; }
 .cell-emergency { background-color: #e67e22; color: white; font-size: 10px; }
 .cell-sick { background-color: #f1c40f; color: black; font-size: 10px; }
-.cell-swap { background-color: #9b59b6; color: white;  font-size: 10px; }
 .cell-permission { background-color: #eaf6ff; color: #3498db; font-weight: bold; border: 1px solid #3498db; }
 .cell-weekend { background-color: #f0f2f5; color: #b2bec3; background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.03) 5px, rgba(0,0,0,0.03) 10px); }
     </style>
@@ -413,8 +412,6 @@
             <div style="display:flex; align-items:center; gap:5px;"><span style="width:15px; height:15px; background:#f1c40f; border-radius:4px;"></span> إجازة مرضية</div>
             <div style="display:flex; align-items:center; gap:5px;"><span style="width:15px; height:15px; background:#3498db; border-radius:4px;"></span> إذن خروج</div>
             <div style="display:flex; align-items:center; gap:5px;"><span style="width:15px; height:15px; background:#95a5a6; border-radius:4px;"></span> عطلة أسبوعية</div>
-            <div style="display:flex; align-items:center; gap:5px;"><span style="width:15px; height:15px; background:#95a5a6; border-radius:4px;"></span> تبادل توكة</div>
-
         </div>
 
         <h4 style="color: var(--primary); margin-top: 20px; border-bottom: 2px solid var(--bg-main); padding-bottom: 10px;">
@@ -667,13 +664,7 @@
         let unsubscribeLeaves = null;
         let unsubscribePermissions = null;
         let allPermissionsGlobal = [];
-        let allSwapsGlobal = [];
-        
-onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'swaps')), (snap) => {
-            allSwapsGlobal = [];
-            snap.forEach(doc => allSwapsGlobal.push({ id: doc.id, ...doc.data() }));
-            if (!document.getElementById('view-calendar').classList.contains('hidden')) renderMonthlyCalendar();
-        });
+
         onAuthStateChanged(auth, (user) => {
             const loadingScreen = document.getElementById('loading-screen');
             const loginView = document.getElementById('login-view');
@@ -771,13 +762,6 @@ onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'swaps')),
                 snap.forEach(doc => {
                     allPermissionsGlobal.push({id: doc.id, ...doc.data()});
                 });
-           // 4. مراقبة تبادل التوكة
-          onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'swaps')), (snap) => {
-            allSwapsGlobal = [];
-            snap.forEach(doc => allSwapsGlobal.push({ id: doc.id, ...doc.data() }));
-            // إذا كان التقويم مفتوحاً، أعد رسمه فوراً عند حدوث تغيير
-            if (!document.getElementById('view-calendar').classList.contains('hidden')) renderMonthlyCalendar();
-        });
 
                 // حساب عداد اليوم
                 const now = new Date();
@@ -1104,6 +1088,31 @@ onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'swaps')),
             if (onlineEl) onlineEl.innerText = onlineCount;
         }
 
+        function openShiftSwapModal() {
+    document.getElementById("shiftSwapModal").style.display = "flex";
+}
+
+        function submitShiftSwap() {
+    const swap = {
+        empId: currentEmpId,
+        date: document.getElementById("swap-date").value,
+        from: document.getElementById("swap-from").value,
+        to: document.getElementById("swap-to").value,
+        reason: document.getElementById("swap-reason").value,
+        status: "pending",
+        createdAt: new Date().toISOString()
+    };
+
+    shiftSwaps.push(swap);
+    localStorage.setItem("shiftSwaps", JSON.stringify(shiftSwaps));
+
+    showToast("تم إرسال طلب تبديل التوكة");
+    document.getElementById("shiftSwapModal").style.display = "none";
+
+    renderProfileShiftSwaps();
+    renderMonthlyCalendar();
+}
+
         function updateBirthdayList() {
             const listEl = document.getElementById('birthday-list');
             if (!listEl) return;
@@ -1238,8 +1247,8 @@ onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'swaps')),
                     <div class="action-card-btn" onclick="openActionModal('leave', '${emp.id}', ${currentBalance})"><i class="fas fa-plane-departure" style="color:#e67e22"></i><span>طلب إجازة</span></div>
                     <div class="action-card-btn" onclick="openActionModal('permission', '${emp.id}')"><i class="fas fa-clock" style="color:#3498db"></i><span>طلب إذن</span></div>
                     <div class="action-card-btn" onclick="openActionModal('overtime', '${emp.id}')"><i class="fas fa-plus-circle" style="color:#2ecc71"></i><span>عمل إضافي</span></div>
-                    <div class="action-card-btn" onclick="openActionModal('swap', '${emp.id}')"><i class="fas fa-exchange-alt" style="color:#9b59b6"></i> <span>تبادل توكة</span></div>
                     <div class="action-card-btn" onclick="openActionModal('task', '${emp.id}')"><i class="fas fa-briefcase" style="color:#9b59b6"></i><span>مهمة عمل</span></div>
+                    <div class="action-card-btn" onclick="openShiftSwapModal()"><i class="fas fa-exchange-alt"></i> <span>طلب تبديل توكة</span></div> 
                     <div class="action-card-btn" onclick="openActionModal('warning', '${emp.id}')"><i class="fas fa-exclamation-triangle" style="color:#e74c3c"></i><span>إنذار</span></div>
                 </div>
                 <div class="profile-info-grid" style="margin-top:30px;"><div class="profile-info-box"><span class="profile-label">الرقم الوظيفي</span><span class="profile-value">${emp.empId}</span></div><div class="profile-info-box"><span class="profile-label">المرتب</span><span class="profile-value">${emp.salary || '0'} دينار</span></div><div class="profile-info-box"><span class="profile-label">فصيلة الدم</span><span class="profile-value">${emp.bloodType || 'غير مسجل'}</span></div><div class="profile-info-box"><span class="profile-label">الهاتف</span><span class="profile-value">${emp.phone || '---'}</span></div><div class="profile-info-box"><span class="profile-label">البريد</span><span class="profile-value">${emp.email || '---'}</span></div><div class="profile-info-box"><span class="profile-label">الانضمام</span><span class="profile-value">${emp.joining || '---'}</span></div></div>
@@ -1250,6 +1259,21 @@ onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'swaps')),
                     <div class="sub-card"><h4><i class="fas fa-plus-circle"></i> العمل الإضافي</h4><table class="data-table" style="margin-top:0;"><thead><tr><th>التاريخ</th><th>الساعات</th><th>السبب</th><th>إجراءات</th></tr></thead><tbody>${overtime.map(o => `<tr><td>${o.date}</td><td>${o.hours}</td><td>${o.reason}</td><td><button onclick="editOvertime('${o.id}', '${emp.id}', '${o.date}', '${o.hours}', '${o.reason}')" class="btn-icon edit"><i class="fas fa-edit"></i></button><button onclick="deleteAction('overtime', '${o.id}', '${emp.id}')" class="btn-icon delete"><i class="fas fa-trash-alt"></i></button></td></tr>`).join('') || '<tr><td colspan="4" style="text-align:center">لا يوجد</td></tr>'}</tbody></table></div>
                     <div class="sub-card"><h4><i class="fas fa-tasks"></i> مهمات العمل</h4><table class="data-table" style="margin-top:0;"><thead><tr><th>التاريخ</th><th>المهمة</th></tr></thead><tbody>${tasks.map(t => `<tr><td>${t.date}</td><td>${t.type}</td></tr>`).join('') || '<tr><td colspan="2" style="text-align:center">لا يوجد</td></tr>'}</tbody></table></div>
                     <div class="sub-card" style="grid-column: span 2;"><h4><i class="fas fa-exclamation-triangle"></i> سجل الإنذارات</h4><table class="data-table" style="margin-top:0;"><thead><tr><th>التاريخ</th><th>النوع</th><th>إجراءات</th></tr></thead><tbody>${warnings.map(w => `<tr><td>${w.date}</td><td>${w.type}</td><td><button onclick="editWarning('${w.id}', '${emp.id}', '${w.date}', '${w.type}')" class="btn-icon edit"><i class="fas fa-edit"></i></button><button onclick="deleteAction('warnings', '${w.id}', '${emp.id}')" class="btn-icon delete"><i class="fas fa-trash-alt"></i></button></td></tr>`).join('') || '<tr><td colspan="3" style="text-align:center">لا يوجد</td></tr>'}</tbody></table></div>
+               <div class="sub-card">
+  <h4><i class="fas fa-exchange-alt"></i> سجل تبديل التوكات</h4>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>التاريخ</th>
+        <th>من</th>
+        <th>إلى</th>
+        <th>الحالة</th>
+      </tr>
+    </thead>
+    <tbody id="shift-swap-history"></tbody>
+  </table>
+</div>
+
                 </div>
             `;
             showView('profile');
@@ -1460,45 +1484,48 @@ onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'swaps')),
                 body.innerHTML = `<div class="form-group"><label>نوع المهمة</label><select id="act-task-type"><option>العمليات</option><option>مكالمات</option><option>رسائل البريستومان</option><option>اكتيف</option></select></div><div class="form-group"><label>التاريخ</label><input type="date" id="act-date"></div>`;
                 saveBtn.onclick = () => saveAction('tasks', empDocId, { type: document.getElementById('act-task-type').value, date: document.getElementById('act-date').value });
             }
-            else if (type === 'swap') {
-                title.innerText = "تسجيل تبادل توكة";
-                // لاحظ استخدام علامة ( ` ) لضمان عدم تعليق الصفحة
-                body.innerHTML = `
-                    <div class="form-group">
-                        <label>تاريخ التبادل</label>
-                        <input type="date" id="act-date">
-                    </div>
-                    <div class="form-group">
-                        <label>الموظف البديل</label>
-                        <select id="act-partner">
-                            <option value="">اختر الموظف...</option>
-                            ${allEmployees.filter(e => e.id !== empDocId).map(e => `<option value="${e.id}">${e.name}</option>`).join('')}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>ملاحظات</label>
-                        <input type="text" id="act-note" placeholder="مثلاً: تبديل شفت صباحي بمسائي">
-                    </div>
-                `;
-                
-                // استخدام دالة saveAction الموجودة مسبقاً في ملفك
-                saveBtn.onclick = async () => {
-                    const date = document.getElementById('act-date').value;
-                    const partnerId = document.getElementById('act-partner').value;
-                    const note = document.getElementById('act-note').value;
+             else if (type === 'swap') {
+                title.innerText = "تبديل توكة";
+                body.innerHTML = `<div id="shiftSwapModal" class="modal-overlay">
+  <div class="modal-content">
+    <h3><i class="fas fa-exchange-alt"></i> طلب تبديل توكة</h3>
 
-                    if(!date || !partnerId) return alert("يرجى تعبئة البيانات");
+    <div class="form-group">
+      <label>التاريخ</label>
+      <input type="date" id="swap-date">
+    </div>
 
-                    const partnerName = allEmployees.find(e => e.id === partnerId)?.name || "زميل";
+    <div class="form-group">
+      <label>التوكة الحالية</label>
+      <select id="swap-from">
+        <option>08:00 - 15:00</option>
+        <option>09:00 - 16:00</option>
+        <option>12:00 - 19:00</option>
+        <option>16:00 - 23:00</option>
+        <option>19:00 - 02:00</option>
+      </select>
+    </div>
 
-                    // حفظ الطلب في قاعدة البيانات (سيظهر في صفحة الموظف)
-                    await saveAction('swaps', empDocId, { 
-                        date: date, 
-                        partnerName: partnerName, 
-    empDocId: empDocId, // ضروري جداً للفلترة في التقويم
-    note: note
-                    });
-                };
+    <div class="form-group">
+      <label>التوكة المطلوبة</label>
+      <select id="swap-to">
+        <option>08:00 - 15:00</option>
+        <option>09:00 - 16:00</option>
+        <option>12:00 - 19:00</option>
+        <option>16:00 - 23:00</option>
+        <option>19:00 - 02:00</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>السبب</label>
+      <textarea id="swap-reason"></textarea>
+    </div>
+
+    <button class="btn-main" onclick="submitShiftSwap()">إرسال الطلب</button>
+  </div>
+</div>`;
+                saveBtn.onclick = () => saveAction('tasks', empDocId, { type: document.getElementById('act-task-type').value, date: document.getElementById('act-date').value });
             }
             else if (type === 'warning') {
                 title.innerText = "إصدار إنذار إداري";
@@ -1516,6 +1543,23 @@ onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'swaps')),
                 setTimeout(() => t.style.display = 'none', 3000); 
             } 
         }
+function renderProfileShiftSwaps() {
+    const body = document.getElementById("shift-swap-history");
+    body.innerHTML = "";
+
+    shiftSwaps
+      .filter(s => s.empId === currentEmpId)
+      .forEach(s => {
+        body.innerHTML += `
+          <tr>
+            <td>${s.date}</td>
+            <td>${s.from}</td>
+            <td>${s.to}</td>
+            <td><span class="status-badge badge-success">${s.status}</span></td>
+          </tr>
+        `;
+      });
+}
 
         // --- CRUD Operations (Add/Edit/Delete) ---
         async function saveAction(collectionName, empDocId, data) {
@@ -1826,22 +1870,13 @@ onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'swaps')),
                                     cellContent = perm.hours;
                                 }
                             }
+shiftSwaps.forEach(swap => {
+    if (swap.date === day && swap.status === "approved") {
+        cell.classList.add("cell-permission");
+        cell.innerHTML += `<div>🔁 تبديل توكة</div>`;
+    }
+});
 
-                    
-// كود عرض تبادل التوكة
-if (typeof allSwapsGlobal !== 'undefined') {
-        const y = checkDate.getFullYear();
-const m = String(checkDate.getMonth() + 1).padStart(2, '0');
-const d = String(checkDate.getDate()).padStart(2, '0');
-const dateStrComp = `${y}-${m}-${d}`;
-const isSwap = allSwapsGlobal.some(s => s.empDocId === emp.id && s.date === dateStrComp);    
-    if (isSwap) { // إضافة حالة التبادل هنا
-                    cellClass = 'cell-swap';
-                    cellContent = '<i class="fas fa-exchange-alt"></i>';
-                    const sData = allSwapsGlobal.find(s => s.empDocId === emp.id && s.date === dateStrComp);
-                    cell.title = `تبادل مع: ${sData.partnerName || ''}`;
-                }
-                            
                             bodyHTML += `<td class="${cellClass}" title="${dateStr}">${cellContent}</td>`;
                         }
                         bodyHTML += '</tr>';
@@ -1950,10 +1985,3 @@ const isSwap = allSwapsGlobal.some(s => s.empDocId === emp.id && s.date === date
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
