@@ -1443,6 +1443,46 @@
                 body.innerHTML = `<div class="form-group"><label>نوع المهمة</label><select id="act-task-type"><option>العمليات</option><option>مكالمات</option><option>رسائل البريستومان</option><option>اكتيف</option></select></div><div class="form-group"><label>التاريخ</label><input type="date" id="act-date"></div>`;
                 saveBtn.onclick = () => saveAction('tasks', empDocId, { type: document.getElementById('act-task-type').value, date: document.getElementById('act-date').value });
             }
+            else if (type === 'swap') {
+                title.innerText = "تسجيل تبادل توكة";
+                // لاحظ استخدام علامة ( ` ) لضمان عدم تعليق الصفحة
+                body.innerHTML = `
+                    <div class="form-group">
+                        <label>تاريخ التبادل</label>
+                        <input type="date" id="act-date">
+                    </div>
+                    <div class="form-group">
+                        <label>الموظف البديل</label>
+                        <select id="act-partner">
+                            <option value="">اختر الموظف...</option>
+                            ${allEmployees.filter(e => e.id !== empDocId).map(e => `<option value="${e.id}">${e.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>ملاحظات</label>
+                        <input type="text" id="act-note" placeholder="مثلاً: تبديل شفت صباحي بمسائي">
+                    </div>
+                `;
+                
+                // استخدام دالة saveAction الموجودة مسبقاً في ملفك
+                saveBtn.onclick = async () => {
+                    const date = document.getElementById('act-date').value;
+                    const partnerId = document.getElementById('act-partner').value;
+                    const note = document.getElementById('act-note').value;
+
+                    if(!date || !partnerId) return alert("يرجى تعبئة البيانات");
+
+                    const partnerName = allEmployees.find(e => e.id === partnerId)?.name || "زميل";
+
+                    // حفظ الطلب في قاعدة البيانات (سيظهر في صفحة الموظف)
+                    await saveAction('swaps', empDocId, { 
+                        date: date, 
+                        type: 'swap', 
+                        partnerName: partnerName, 
+                        note: note 
+                    });
+                };
+            }
             else if (type === 'warning') {
                 title.innerText = "إصدار إنذار إداري";
                 body.innerHTML = `<div class="form-group"><label>نوع الإنذار</label><select id="act-warn-type"><option>لفت نظر</option><option>إنذار شفهي</option><option>تأخير</option><option>إجراء جزائي</option></select></div><div class="form-group"><label>تاريخ الإنذار</label><input type="date" id="act-date"></div>`;
@@ -1878,3 +1918,4 @@
     </script>
 </body>
 </html>
+
