@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/presto.app/">
     
-    <title>Presto 1OP</title>
+    <title>Presto OP</title>
     
     <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -252,16 +252,6 @@
 .cell-sick { background-color: #f1c40f; color: black; font-size: 10px; }
 .cell-permission { background-color: #eaf6ff; color: #3498db; font-weight: bold; border: 1px solid #3498db; }
 .cell-weekend { background-color: #f0f2f5; color: #b2bec3; background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.03) 5px, rgba(0,0,0,0.03) 10px); }
-        
-.status-swap {
-    background-color: #9b59b6 !important;
-    color: white !important;
-    border-radius: 4px;
-    padding: 2px 5px;
-    font-size: 0.85em;
-    display: block;
-    text-align: center;
-}
     </style>
 </head>
 <body>
@@ -612,40 +602,7 @@
             loadReminders();
         }
     };
-function saveSwapAction(empId) {
-    const date = document.getElementById('swap-date').value;
-    const partnerId = document.getElementById('swap-partner').value;
-    const note = document.getElementById('swap-note').value;
 
-    if (!date) { alert("يرجى اختيار التاريخ"); return; }
-
-    const emp1 = employees.find(e => e.id == empId);
-    const emp2 = employees.find(e => e.id == partnerId);
-
-    // إضافة التبادل لبيانات الموظف (بنفس هيكلية الإجازات في الكود)
-    const swapData = {
-        date: date,
-        type: 'swap',
-        partnerName: emp2.name,
-        note: note
-    };
-
-    if (!emp1.actions) emp1.actions = [];
-    emp1.actions.push(swapData);
-
-    // إضافة سجل عند الطرف الآخر أيضاً
-    if (!emp2.actions) emp2.actions = [];
-    emp2.actions.push({
-        date: date,
-        type: 'swap',
-        partnerName: emp1.name,
-        note: 'تبادل مستلم'
-    });
-
-    closeModal();
-    renderMonthlyCalendar(); // لتحديث الجدول فوراً
-    alert(`تم تسجيل التبادل بين ${emp1.name} و ${emp2.name}`);
-}
     // هذه الدالة ضرورية لعرض التذكيرات
     function loadReminders() {
         const listEl = document.getElementById('reminder-list');
@@ -1266,7 +1223,6 @@ function saveSwapAction(empId) {
                     <div class="action-card-btn" onclick="openActionModal('permission', '${emp.id}')"><i class="fas fa-clock" style="color:#3498db"></i><span>طلب إذن</span></div>
                     <div class="action-card-btn" onclick="openActionModal('overtime', '${emp.id}')"><i class="fas fa-plus-circle" style="color:#2ecc71"></i><span>عمل إضافي</span></div>
                     <div class="action-card-btn" onclick="openActionModal('task', '${emp.id}')"><i class="fas fa-briefcase" style="color:#9b59b6"></i><span>مهمة عمل</span></div>
-                    <div class="action-card-btn" onclick="openShiftSwapModal()"><i class="fas fa-exchange-alt" style="color: #9b59b6;"></i><span>تبادل توكة</span></div>
                     <div class="action-card-btn" onclick="openActionModal('warning', '${emp.id}')"><i class="fas fa-exclamation-triangle" style="color:#e74c3c"></i><span>إنذار</span></div>
                 </div>
                 <div class="profile-info-grid" style="margin-top:30px;"><div class="profile-info-box"><span class="profile-label">الرقم الوظيفي</span><span class="profile-value">${emp.empId}</span></div><div class="profile-info-box"><span class="profile-label">المرتب</span><span class="profile-value">${emp.salary || '0'} دينار</span></div><div class="profile-info-box"><span class="profile-label">فصيلة الدم</span><span class="profile-value">${emp.bloodType || 'غير مسجل'}</span></div><div class="profile-info-box"><span class="profile-label">الهاتف</span><span class="profile-value">${emp.phone || '---'}</span></div><div class="profile-info-box"><span class="profile-label">البريد</span><span class="profile-value">${emp.email || '---'}</span></div><div class="profile-info-box"><span class="profile-label">الانضمام</span><span class="profile-value">${emp.joining || '---'}</span></div></div>
@@ -1487,56 +1443,6 @@ function saveSwapAction(empId) {
                 body.innerHTML = `<div class="form-group"><label>نوع المهمة</label><select id="act-task-type"><option>العمليات</option><option>مكالمات</option><option>رسائل البريستومان</option><option>اكتيف</option></select></div><div class="form-group"><label>التاريخ</label><input type="date" id="act-date"></div>`;
                 saveBtn.onclick = () => saveAction('tasks', empDocId, { type: document.getElementById('act-task-type').value, date: document.getElementById('act-date').value });
             }
-                
-           else if (type === 'swap') {
-            title.innerText = `تبادل توكة - ${emp.name}`;
-            // تأكد من وجود علامة ` في بداية ونهاية الـ HTML أدناه
-            body.innerHTML = `
-                <div class="form-group">
-                    <label>التاريخ المراد تبديله</label>
-                    <input type="date" id="swap-date" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label>الموظف البديل (الطرف الثاني)</label>
-                    <select id="swap-partner" class="form-control">
-                        <option value="">اختر الموظف...</option>
-                        ${employees.filter(e => e.id != emp.id).map(e => `<option value="${e.id}">${e.name}</option>`).join('')}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>ملاحظات</label>
-                    <input type="text" id="swap-note" class="form-control" placeholder="اختياري">
-                </div>
-            `;
-            // ربط زر الحفظ بدالة المعالجة
-            saveBtn.onclick = () => saveSwap(emp.id);
-        }
-            modal.style.display = 'flex';
-};
-       window.saveSwap = (empId) => {
-    const date = document.getElementById('swap-date').value;
-    const partnerId = document.getElementById('swap-partner').value;
-    const note = document.getElementById('swap-note').value;
-
-    if (!date || !partnerId) {
-        alert("يرجى اختيار التاريخ والموظف البديل");
-        return;
-    }
-
-    const emp = employees.find(e => e.id == empId);
-    const partner = employees.find(e => e.id == partnerId);
-
-    if (!emp.actions) emp.actions = [];
-    emp.actions.push({ date, type: 'swap', partnerName: partner.name, note });
-
-    if (!partner.actions) partner.actions = [];
-    partner.actions.push({ date, type: 'swap', partnerName: emp.name, note: 'تبادل مستلم' });
-
-    saveData();
-    document.getElementById('action-modal').style.display = 'none';
-    showToast("تم تسجيل التبادل بنجاح");
-    renderMonthlyCalendar();
-};
             else if (type === 'warning') {
                 title.innerText = "إصدار إنذار إداري";
                 body.innerHTML = `<div class="form-group"><label>نوع الإنذار</label><select id="act-warn-type"><option>لفت نظر</option><option>إنذار شفهي</option><option>تأخير</option><option>إجراء جزائي</option></select></div><div class="form-group"><label>تاريخ الإنذار</label><input type="date" id="act-date"></div>`;
@@ -1863,13 +1769,7 @@ function saveSwapAction(empId) {
                                     cellContent = perm.hours;
                                 }
                             }
-// ابحث عن الجزء الذي يتحقق من الإجازات (vacations/permissions)
-if (emp.actions) {
-    const dayAction = emp.actions.find(a => a.date === currentDateStr);
-    if (dayAction && dayAction.type === 'swap') {
-        cell.innerHTML = `<span class="status-swap">تبادل: ${dayAction.partnerName}</span>`;
-    }
-}
+
                             bodyHTML += `<td class="${cellClass}" title="${dateStr}">${cellContent}</td>`;
                         }
                         bodyHTML += '</tr>';
@@ -1978,8 +1878,3 @@ if (emp.actions) {
     </script>
 </body>
 </html>
-
-
-
-
-
