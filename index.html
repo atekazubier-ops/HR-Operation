@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/presto.app/">
     
-    <title>Presto 1OP</title>
+    <title>Presto 1O1P</title>
     
     <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -1491,26 +1491,63 @@ function saveSwapAction(empId) {
             else if (type === 'swap') {
     title.innerText = `تبادل توكة - ${emp.name}`;
     body.innerHTML = `
-        <div class="form-group" style="margin-bottom: 15px;">
-            <label style="display: block; margin-bottom: 5px; font-weight: bold;">التاريخ المراد تبديله</label>
-            <input type="date" id="swap-date" class="form-control" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-        </div>
-        <div class="form-group" style="margin-bottom: 15px;">
-            <label style="display: block; margin-bottom: 5px; font-weight: bold;">الموظف البديل (الطرف الثاني)</label>
-            <select id="swap-partner" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                <option value="">اختر الموظف...</option>
-                ${employees.filter(e => e.id != emp.id).map(e => `<option value="${e.id}">${e.name}</option>`).join('')}
-            </select>
-        </div>
-        <div class="form-group">
-            <label style="display: block; margin-bottom: 5px; font-weight: bold;">ملاحظات</label>
-            <input type="text" id="swap-note" class="form-control" placeholder="مثلاً: تبديل شفت صباحي بمسائي" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-        </div>
-    `;
+       <div class="form-group">
+                <label>التاريخ المراد تبديله</label>
+                <input type="date" id="swap-date" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>الموظف البديل (الطرف الثاني)</label>
+                <select id="swap-partner" class="form-control">
+                    <option value="">اختر الموظف...</option>
+                    ${employees.filter(e => e.id != empId).map(e => `<option value="${e.id}">${e.name}</option>`).join('')}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>ملاحظات</label>
+                <input type="text" id="swap-note" class="form-control" placeholder="مثلاً: تبديل شفت">
+            </div>
+        `;
+        // ربط الزر بدالة الحفظ الجديدة
+        saveBtn.onclick = () => saveSwap(empId);
+    }modal.style.display = 'flex';
+}window.saveSwap = (empId) => {
+    const date = document.getElementById('swap-date').value;
+    const partnerId = document.getElementById('swap-partner').value;
+    const note = document.getElementById('swap-note').value;
+
+    if (!date || !partnerId) {
+        alert("يرجى ملء كافة الحقول الأساسية");
+        return;
+    }
+
+    const emp = employees.find(e => e.id == empId);
+    const partner = employees.find(e => e.id == partnerId);
+
+    // إضافة التبادل لسجل الموظف الحالي
+    if (!emp.actions) emp.actions = [];
+    emp.actions.push({
+        date: date,
+        type: 'swap',
+        partnerName: partner.name,
+        note: note
+    });
+
+    // إضافة التبادل لسجل الطرف الآخر أيضاً لتظهر عنده في التقويم
+    if (!partner.actions) partner.actions = [];
+    partner.actions.push({
+        date: date,
+        type: 'swap',
+        partnerName: emp.name,
+        note: 'تبادل مستلم: ' + note
+    });
+
+    saveData(); // حفظ في localStorage
+    document.getElementById('action-modal').style.display = 'none';
+    showToast("تم تسجيل التبادل بنجاح");
     
-    // تغيير وظيفة زر الحفظ عند الضغط
-    saveBtn.onclick = () => saveSwapAction(emp.id);
-}
+    // تحديث العرض إذا كان التقويم مفتوحاً
+    if(typeof renderMonthlyCalendar === 'function') renderMonthlyCalendar();
+};
             else if (type === 'warning') {
                 title.innerText = "إصدار إنذار إداري";
                 body.innerHTML = `<div class="form-group"><label>نوع الإنذار</label><select id="act-warn-type"><option>لفت نظر</option><option>إنذار شفهي</option><option>تأخير</option><option>إجراء جزائي</option></select></div><div class="form-group"><label>تاريخ الإنذار</label><input type="date" id="act-date"></div>`;
@@ -1952,4 +1989,5 @@ if (emp.actions) {
     </script>
 </body>
 </html>
+
 
