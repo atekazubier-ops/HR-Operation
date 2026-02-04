@@ -250,6 +250,7 @@
 .cell-vacation { background-color: #2ecc71; color: white; font-size: 10px; }
 .cell-emergency { background-color: #e67e22; color: white; font-size: 10px; }
 .cell-sick { background-color: #f1c40f; color: black; font-size: 10px; }
+.cell-swap { background-color: #9b59b6; color: white; font-weight: bold; cursor: help; }
 .cell-permission { background-color: #eaf6ff; color: #3498db; font-weight: bold; border: 1px solid #3498db; }
 .cell-weekend { background-color: #f0f2f5; color: #b2bec3; background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.03) 5px, rgba(0,0,0,0.03) 10px); }
     </style>
@@ -664,6 +665,7 @@
         let unsubscribeLeaves = null;
         let unsubscribePermissions = null;
         let allPermissionsGlobal = [];
+        let allSwapsGlobal = [];
 
         onAuthStateChanged(auth, (user) => {
             const loadingScreen = document.getElementById('loading-screen');
@@ -762,6 +764,17 @@
                 snap.forEach(doc => {
                     allPermissionsGlobal.push({id: doc.id, ...doc.data()});
                 });
+           // 4. مراقبة تبادل التوكة
+            const swapsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'swaps');
+          onSnapshot(query(swapsColRef), (snap) => {
+          allSwapsGlobal = [];
+         snap.forEach(doc => allSwapsGlobal.push({id: doc.id, ...doc.data()}));
+    
+    // تحديث التقويم إذا كان مفتوحاً
+    if (!document.getElementById('view-calendar').classList.contains('hidden')) {
+        renderMonthlyCalendar();
+    }
+});
 
                 // حساب عداد اليوم
                 const now = new Date();
@@ -1811,6 +1824,28 @@
                                 }
                             }
 
+                            const y = checkDate.getFullYear();
+const m = String(checkDate.getMonth() + 1).padStart(2, '0');
+const d = String(checkDate.getDate()).padStart(2, '0');
+const dateStrComp = `${y}-${m}-${d}`;
+
+// كود عرض تبادل التوكة
+if (typeof allSwapsGlobal !== 'undefined') {
+    // نبحث هل يوجد تبادل لهذا الموظف في هذا التاريخ
+    const swap = allSwapsGlobal.find(s => s.empDocId === emp.id && s.date === dateStrComp);
+    
+    if (swap) {
+        cellClass = 'cell-swap'; // تطبيق اللون البنفسجي
+        // عرض رمز واسم البديل عند تمرير الماوس
+        cellContent = '<i class="fas fa-exchange-alt"></i>'; 
+        // أو يمكنك عرض أول حرف من اسم البديل:
+        // cellContent = swap.partnerName.charAt(0);
+        
+        // إضافة تلميح (Tooltip) يظهر التفاصيل
+        cell.title = `تبادل مع: ${swap.partnerName}`; 
+    }
+}
+                            
                             bodyHTML += `<td class="${cellClass}" title="${dateStr}">${cellContent}</td>`;
                         }
                         bodyHTML += '</tr>';
@@ -1919,5 +1954,6 @@
     </script>
 </body>
 </html>
+
 
 
