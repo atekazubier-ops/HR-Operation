@@ -1489,27 +1489,28 @@ function saveSwapAction(empId) {
             }
                 
            else if (type === 'swap') {
-    title.innerText = `تبادل توكة - ${emp.name}`;
-    // لاحظ علامة ` في بداية السطر التالي وفي نهاية كود الـ HTML
-    body.innerHTML = `
-        <div class="form-group">
-            <label>التاريخ المراد تبديله</label>
-            <input type="date" id="swap-date" class="form-control" required>
-        </div>
-        <div class="form-group">
-            <label>الموظف البديل (الطرف الثاني)</label>
-            <select id="swap-partner" class="form-control">
-                <option value="">اختر الموظف...</option>
-                ${employees.filter(e => e.id != empId).map(e => `<option value="${e.id}">${e.name}</option>`).join('')}
-            </select>
-        </div>
-        <div class="form-group">
-            <label>ملاحظات</label>
-            <input type="text" id="swap-note" class="form-control" placeholder="اختياري">
-        </div>
-    `;
-    saveBtn.onclick = () => saveSwap(empId);
-}
+            title.innerText = `تبادل توكة - ${emp.name}`;
+            // تأكد من وجود علامة ` في بداية ونهاية الـ HTML أدناه
+            body.innerHTML = `
+                <div class="form-group">
+                    <label>التاريخ المراد تبديله</label>
+                    <input type="date" id="swap-date" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>الموظف البديل (الطرف الثاني)</label>
+                    <select id="swap-partner" class="form-control">
+                        <option value="">اختر الموظف...</option>
+                        ${employees.filter(e => e.id != emp.id).map(e => `<option value="${e.id}">${e.name}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>ملاحظات</label>
+                    <input type="text" id="swap-note" class="form-control" placeholder="اختياري">
+                </div>
+            `;
+            // ربط زر الحفظ بدالة المعالجة
+            saveBtn.onclick = () => saveSwap(emp.id);
+        }
             modal.style.display = 'flex';
 }
        window.saveSwap = (empId) => {
@@ -1977,6 +1978,7 @@ if (emp.actions) {
     </script>
 </body>
 </html>
+
 
 
 
