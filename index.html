@@ -1829,14 +1829,13 @@ onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'swaps')),
                                 }
                             }
 
-                            const y = checkDate.getFullYear();
+                    
+// كود عرض تبادل التوكة
+if (typeof allSwapsGlobal !== 'undefined') {
+        const y = checkDate.getFullYear();
 const m = String(checkDate.getMonth() + 1).padStart(2, '0');
 const d = String(checkDate.getDate()).padStart(2, '0');
 const dateStrComp = `${y}-${m}-${d}`;
-
-// كود عرض تبادل التوكة
-if (typeof allSwapsGlobal !== 'undefined') {
-    // نبحث هل يوجد تبادل لهذا الموظف في هذا التاريخ
     const swap = allSwapsGlobal.find(s => s.empDocId === emp.id && s.date === dateStrComp);
     
     if (swap) {
@@ -1959,6 +1958,7 @@ if (typeof allSwapsGlobal !== 'undefined') {
     </script>
 </body>
 </html>
+
 
 
 
