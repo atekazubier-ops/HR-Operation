@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/presto.app/">
     
-    <title>Presto 11OP</title>
+    <title>Presto OP</title>
     
     <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -250,7 +250,7 @@
 .cell-vacation { background-color: #2ecc71; color: white; font-size: 10px; }
 .cell-emergency { background-color: #e67e22; color: white; font-size: 10px; }
 .cell-sick { background-color: #f1c40f; color: black; font-size: 10px; }
-.cell-swap { background-color: #9b59b6; color: white; font-weight: bold; cursor: help; }
+.cell-swap { background-color: #9b59b6; color: white;  font-size: 10px; }
 .cell-permission { background-color: #eaf6ff; color: #3498db; font-weight: bold; border: 1px solid #3498db; }
 .cell-weekend { background-color: #f0f2f5; color: #b2bec3; background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.03) 5px, rgba(0,0,0,0.03) 10px); }
     </style>
@@ -413,6 +413,8 @@
             <div style="display:flex; align-items:center; gap:5px;"><span style="width:15px; height:15px; background:#f1c40f; border-radius:4px;"></span> إجازة مرضية</div>
             <div style="display:flex; align-items:center; gap:5px;"><span style="width:15px; height:15px; background:#3498db; border-radius:4px;"></span> إذن خروج</div>
             <div style="display:flex; align-items:center; gap:5px;"><span style="width:15px; height:15px; background:#95a5a6; border-radius:4px;"></span> عطلة أسبوعية</div>
+            <div style="display:flex; align-items:center; gap:5px;"><span style="width:15px; height:15px; background:#95a5a6; border-radius:4px;"></span> تبادل توكة</div>
+
         </div>
 
         <h4 style="color: var(--primary); margin-top: 20px; border-bottom: 2px solid var(--bg-main); padding-bottom: 10px;">
@@ -770,16 +772,12 @@ onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'swaps')),
                     allPermissionsGlobal.push({id: doc.id, ...doc.data()});
                 });
            // 4. مراقبة تبادل التوكة
-            const swapsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'swaps');
-          onSnapshot(query(swapsColRef), (snap) => {
-          allSwapsGlobal = [];
-         snap.forEach(doc => allSwapsGlobal.push({id: doc.id, ...doc.data()}));
-    
-    // تحديث التقويم إذا كان مفتوحاً
-    if (!document.getElementById('view-calendar').classList.contains('hidden')) {
-        renderMonthlyCalendar();
-    }
-});
+          onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'swaps')), (snap) => {
+            allSwapsGlobal = [];
+            snap.forEach(doc => allSwapsGlobal.push({ id: doc.id, ...doc.data() }));
+            // إذا كان التقويم مفتوحاً، أعد رسمه فوراً عند حدوث تغيير
+            if (!document.getElementById('view-calendar').classList.contains('hidden')) renderMonthlyCalendar();
+        });
 
                 // حساب عداد اليوم
                 const now = new Date();
@@ -1496,9 +1494,9 @@ onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'swaps')),
                     // حفظ الطلب في قاعدة البيانات (سيظهر في صفحة الموظف)
                     await saveAction('swaps', empDocId, { 
                         date: date, 
-                        type: 'swap', 
                         partnerName: partnerName, 
-                        note: note 
+    empDocId: empDocId, // ضروري جداً للفلترة في التقويم
+    note: note
                     });
                 };
             }
@@ -1836,19 +1834,13 @@ if (typeof allSwapsGlobal !== 'undefined') {
 const m = String(checkDate.getMonth() + 1).padStart(2, '0');
 const d = String(checkDate.getDate()).padStart(2, '0');
 const dateStrComp = `${y}-${m}-${d}`;
-    const swap = allSwapsGlobal.find(s => s.empDocId === emp.id && s.date === dateStrComp);
-    
-    if (swap) {
-        cellClass = 'cell-swap'; // تطبيق اللون البنفسجي
-        // عرض رمز واسم البديل عند تمرير الماوس
-        cellContent = '<i class="fas fa-exchange-alt"></i>'; 
-        // أو يمكنك عرض أول حرف من اسم البديل:
-        // cellContent = swap.partnerName.charAt(0);
-        
-        // إضافة تلميح (Tooltip) يظهر التفاصيل
-        cell.title = `تبادل مع: ${swap.partnerName}`; 
-    }
-}
+const isSwap = allSwapsGlobal.some(s => s.empDocId === emp.id && s.date === dateStrComp);    
+    if (isSwap) { // إضافة حالة التبادل هنا
+                    cellClass = 'cell-swap';
+                    cellContent = '<i class="fas fa-exchange-alt"></i>';
+                    const sData = allSwapsGlobal.find(s => s.empDocId === emp.id && s.date === dateStrComp);
+                    cell.title = `تبادل مع: ${sData.partnerName || ''}`;
+                }
                             
                             bodyHTML += `<td class="${cellClass}" title="${dateStr}">${cellContent}</td>`;
                         }
@@ -1958,6 +1950,7 @@ const dateStrComp = `${y}-${m}-${d}`;
     </script>
 </body>
 </html>
+
 
 
 
