@@ -227,6 +227,8 @@
                 <a onclick="showView('employees')" id="link-employees" class="nav-link"><i class="fas fa-user-friends"></i> <span>الموظفين</span></a>
                 <a onclick="showView('calendar')" id="link-calendar" class="nav-link"><i class="fas fa-calendar-alt"></i> <span>التقويم الشهري</span></a>
                 <a onclick="showView('overtime')" id="link-overtime" class="nav-link"><i class="fas fa-calculator"></i> <span>احتساب الإضافي</span></a>
+                <a onclick="showView('overtime')" id="link-overtime" class="nav-link"><i class="fas fa-calculator"></i> <span>الأداء والتقييم</span></a>
+
             </nav>
 
             <div style="margin-top: auto; width: 100%; padding: 0 10px; margin-bottom: 20px;">
@@ -417,7 +419,50 @@
                         <div id="profile-content"></div>
                     </div>
                 </div>
+<div id="view-stats" class="hidden" style="grid-column: 1 / -1;">
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 25px;">
+                            <h3><i class="fas fa-trophy" style="color: #f1c40f;"></i> لوحة الشرف ومؤشرات الأداء (الشهر الحالي)</h3>
+                            <div style="color: var(--text-muted); font-size: 14px;" id="current-month-display"></div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-bottom: 40px;" id="top-performers-container">
+                            <div class="performer-card">
+                                <i class="fas fa-medal badge" style="color: #f1c40f;"></i>
+                                <h4 style="color: var(--text-muted); margin-top: 0;">بطل الجودة</h4>
+                                <div class="performer-avatar" id="top-rated-avatar">?</div>
+                                <h3 style="margin: 10px 0 5px;" id="top-rated-name">---</h3>
+                                <p style="margin: 0; color: #f1c40f; font-weight: bold; font-size: 20px;" id="top-rated-score">0%</p>
+                                <p style="font-size: 12px; color: var(--text-muted); margin-top: 5px;">متوسط جودة الأداء</p>
+                            </div>
 
+                            <div class="performer-card">
+                                <i class="fas fa-crown badge" style="color: #3498db;"></i>
+                                <h4 style="color: var(--text-muted); margin-top: 0;">نجم الإنجاز العام</h4>
+                                <div class="performer-avatar" id="top-prod-avatar" style="background: #3498db;">?</div>
+                                <h3 style="margin: 10px 0 5px;" id="top-prod-name">---</h3>
+                                <p style="margin: 0; color: #3498db; font-weight: bold; font-size: 20px;" id="top-prod-score">0 نقطة</p>
+                                <p style="font-size: 12px; color: var(--text-muted); margin-top: 5px;" id="top-prod-quality">إجمالي المعاملات: 0</p>
+                            </div>
+                        </div>
+
+                        <h4><i class="fas fa-list-alt" style="color: var(--primary);"></i> السجل الشامل للأداء والجودة</h4>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>التاريخ</th>
+                                    <th>الموظف</th>
+                                    <th>المهمة</th>
+                                    <th>تفاصيل الأداء</th>
+                                    <th>الملاحظات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="all-stats-body">
+                                <tr><td colspan="5" style="text-align:center; padding: 30px; color: var(--text-muted);">جاري التحميل...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
                 <div id="side-widgets" class="side-widgets">
                     <div class="card" style="background: var(--secondary); color: white; min-height: 180px; display: flex; flex-direction: column;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
@@ -1952,3 +1997,4 @@
     </script>
 </body>
 </html>
+
