@@ -227,8 +227,7 @@
                 <a onclick="showView('employees')" id="link-employees" class="nav-link"><i class="fas fa-user-friends"></i> <span>الموظفين</span></a>
                 <a onclick="showView('calendar')" id="link-calendar" class="nav-link"><i class="fas fa-calendar-alt"></i> <span>التقويم الشهري</span></a>
                 <a onclick="showView('overtime')" id="link-overtime" class="nav-link"><i class="fas fa-calculator"></i> <span>احتساب الإضافي</span></a>
-                <a onclick="showView('overtime')" id="link-overtime" class="nav-link"><i class="fas fa-calculator"></i> <span>الأداء والتقييم</span></a>
-
+                <a onclick="showView('stats')" id="link-stats" class="nav-link"><i class="fas fa-trophy"></i> <span>الأداء والتقييم</span></a>
             </nav>
 
             <div style="margin-top: auto; width: 100%; padding: 0 10px; margin-bottom: 20px;">
@@ -790,7 +789,13 @@
                 }
             });
         }
-
+const perfColRef = collection(db, 'artifacts', appId, 'public', 'data', 'performance_kpi');
+            unsubscribePerformance = onSnapshot(query(perfColRef), (snap) => {
+                allPerformanceGlobal = [];
+                snap.forEach(doc => allPerformanceGlobal.push({id: doc.id, ...doc.data()}));
+                const statsView = document.getElementById('view-stats');
+                if (statsView && !statsView.classList.contains('hidden')) renderStatsPage();
+            });
         // تم فصل هذه الدالة لتكون خارج startListening (هذا كان سبب المشكلة)
         function updateWeeklyLeavesTable() {
             const tbody = document.getElementById('weekly-leaves-body');
@@ -1210,7 +1215,7 @@
             const tasks = await fetchActionData('tasks', id);
             const warnings = await fetchActionData('warnings', id);
             const swaps = await fetchSwaps(id); // جلب التبديلات
-            
+            const performance = await fetchActionData('performance_kpi', id);
             let takenDays = 0;
             const currentYear = new Date().getFullYear();
 
@@ -1243,11 +1248,32 @@
                     <div class="action-card-btn" onclick="openActionModal('swap', '${emp.id}')"><i class="fas fa-exchange-alt" style="color:var(--purple)"></i><span>تبديل توكة</span></div>
                     <div class="action-card-btn" onclick="openActionModal('task', '${emp.id}')"><i class="fas fa-briefcase" style="color:#9b59b6"></i><span>مهمة عمل</span></div>
                     <div class="action-card-btn" onclick="openActionModal('warning', '${emp.id}')"><i class="fas fa-exclamation-triangle" style="color:#e74c3c"></i><span>إنذار</span></div>
+                    <div class="action-card-btn" onclick="openActionModal('kpi', '${emp.id}')"><i class="fas fa-gem" style="color:#f1c40f"></i><span>مؤشرات الأداء (KPI)</span></div>
                 </div>
                 <div class="profile-info-grid" style="margin-top:30px;"><div class="profile-info-box"><span class="profile-label">الرقم الوظيفي</span><span class="profile-value">${emp.empId}</span></div><div class="profile-info-box"><span class="profile-label">المرتب</span><span class="profile-value">${emp.salary || '0'} دينار</span></div><div class="profile-info-box"><span class="profile-label">فصيلة الدم</span><span class="profile-value">${emp.bloodType || 'غير مسجل'}</span></div><div class="profile-info-box"><span class="profile-label">الهاتف</span><span class="profile-value">${emp.phone || '---'}</span></div><div class="profile-info-box"><span class="profile-label">البريد</span><span class="profile-value">${emp.email || '---'}</span></div><div class="profile-info-box"><span class="profile-label">الانضمام</span><span class="profile-value">${emp.joining || '---'}</span></div></div>
                 <div class="profile-tabs-content">
                     <div class="sub-card" style="grid-column: span 2;"><h4><i class="fas fa-calendar-check"></i> جدول الدوام الأسبوعي</h4><div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px;">${days.map(d => `<div style="background:var(--bg-card); padding:10px; border-radius:12px; text-align:center; border: 1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted);">${d}</div><div style="font-weight:700; font-size:11px;">${(emp.schedule && emp.schedule[d]) || '---'}</div></div>`).join('')}</div></div>
-                    
+                    <div class="sub-card" style="grid-column: span 2;">
+                        <h4><i class="fas fa-gem" style="color:#f1c40f"></i> سجل مؤشرات الأداء (الإنجاز والجودة)</h4>
+                        <table class="data-table" style="margin-top:0;">
+                            <thead><tr><th>التاريخ</th><th>المهمة</th><th>الإنجاز الكمي</th><th>الجودة الكلية</th><th>نقاط الأداء</th><th>إجراءات</th></tr></thead>
+                            <tbody>
+                                ${performance.map(p => {
+                                    const taskNames = {'calls':'المكالمات', 'messages':'رسائل العملاء', 'operations':'إجراء العمليات', 'active':'الاكتف'};
+                                    const taskAr = taskNames[p.taskType] || p.taskType;
+                                    const points = (parseFloat(p.quantity || 0) * (parseFloat(p.quality || 0)/100)).toFixed(1);
+                                    return `<tr>
+                                        <td>${p.date}</td>
+                                        <td><span style="background:var(--bg-main); padding:4px 8px; border-radius:6px; font-size:12px;">${taskAr}</span></td>
+                                        <td style="font-weight:bold;">${p.quantity}</td>
+                                        <td><span style="color:${p.quality >= 85 ? 'var(--success)' : 'var(--danger)'}; font-weight:bold;">${p.quality}%</span></td>
+                                        <td style="color:var(--primary); font-weight:800;">${points} نقطة</td>
+                                        <td><button onclick="deleteAction('performance_kpi', '${p.id}', '${emp.id}')" class="btn-icon delete"><i class="fas fa-trash-alt"></i></button></td>
+                                    </tr>`;
+                                }).join('') || '<tr><td colspan="6" style="text-align:center">لا توجد سجلات أداء</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
                     <div class="sub-card" style="grid-column: span 2;"><h4><i class="fas fa-exchange-alt" style="color:var(--purple)"></i> سجل تبديل التوكات</h4>
                         <table class="data-table" style="margin-top:0;">
                             <thead><tr><th>التاريخ</th><th>النوع</th><th>مع الموظف</th><th>التوكة</th><th>السبب</th><th>إجراءات</th></tr></thead>
@@ -1481,6 +1507,26 @@
                     });
                 };
             }
+                else if (type === 'kpi') {
+                title.innerText = "تسجيل الجودة والإنجاز (KPI)";
+                window.calcTotalQuality = () => { let total = 0; document.querySelectorAll('.kpi-score').forEach(el => { let val = parseFloat(el.value) || 0; let max = parseFloat(el.getAttribute('max')); if(val > max) { val = max; el.value = max; } if(val < 0) { val = 0; el.value = 0; } total += val; }); document.getElementById('act-total-quality').innerText = total; };
+                window.renderKPIFields = () => {
+                    const task = document.getElementById('act-task-type').value; const container = document.getElementById('dynamic-kpi-fields'); let html = '';
+                    const makeInput = (id, label, max) => `<div class="form-group" style="flex:1; min-width:45%; background:#f9f9f9; padding:10px; border-radius:10px;"><label style="font-size:12px;">${label} (أقصى: ${max})</label><input type="number" class="kpi-score" id="${id}" max="${max}" min="0" value="0" oninput="calcTotalQuality()" style="background:white; padding:10px;"></div>`;
+                    if (task === 'calls') { html = `<div style="display:flex; flex-wrap:wrap; gap:10px;">${makeInput('q-open', 'الافتتاحية', 10)}${makeInput('q-understand', 'فهم المشكلة', 40)}${makeInput('q-solve', 'الحل والوقت', 20)}${makeInput('q-style', 'الأسلوب والاحترافية', 20)}${makeInput('q-close', 'النهاية والإقفال', 10)}</div>`; } 
+                    else if (task === 'messages') { html = `<div style="display:flex; flex-wrap:wrap; gap:10px;">${makeInput('q-understand', 'فهم المشكلة', 35)}${makeInput('q-accuracy', 'دقة المعلومة', 35)}${makeInput('q-protocol', 'الالتزام بالبروتوكول والردود', 20)}${makeInput('q-solve', 'حل الإشكالية', 10)}</div>`; } 
+                    else if (task === 'operations') { html = `<div style="display:flex; flex-wrap:wrap; gap:10px;">${makeInput('q-decision', 'صحة القرار / الإجراء', 30)}${makeInput('q-doc', 'دقة التوثيق على النظام', 25)}${makeInput('q-protocol', 'الالتزام بالبروتوكول', 25)}${makeInput('q-diagnose', 'تشخيص المشكلة (التأكيد)', 10)}${makeInput('q-style', 'الأسلوب في المكالمة', 10)}</div>`; } 
+                    else if (task === 'active') { html = `<div style="display:flex; flex-wrap:wrap; gap:10px;">${makeInput('q-style', 'الأسلوب في المكالمة', 50)}${makeInput('q-boxes', 'عدم وصول البوكسات للأرقام الحرجة', 50)}</div>`; }
+                    container.innerHTML = html; calcTotalQuality();
+                };
+                body.innerHTML = `<div class="form-group"><label>تاريخ التقييم</label><input type="date" id="act-date"></div><div class="form-group"><label>نوع المهمة المقيمة</label><select id="act-task-type" onchange="renderKPIFields()"><option value="">-- اختر المهمة --</option><option value="calls">المكالمات</option><option value="messages">رسائل العملاء والبريستومان</option><option value="operations">إجراء العمليات</option><option value="active">الاكتف</option></select></div><h4 style="margin-top:20px; font-size:14px; color:var(--primary); border-bottom:1px solid var(--border-color); padding-bottom:5px;">معايير الجودة</h4><div id="dynamic-kpi-fields" style="margin-bottom:15px; color:var(--text-muted); font-size:12px;">يرجى اختيار المهمة لعرض المعايير...</div><div style="background:#eef2f3; padding:15px; border-radius:10px; text-align:center; margin-bottom:20px; border:1px solid #dcdcdc;"><strong>إجمالي الجودة: </strong> <span id="act-total-quality" style="color:var(--success); font-size:22px; font-weight:900;">0</span><span style="font-size:14px;"> / 100</span></div><h4 style="font-size:14px; color:var(--primary); border-bottom:1px solid var(--border-color); padding-bottom:5px;">الإنجاز الفعلي (الكمي)</h4><div class="form-group"><label>إجمالي العدد المنجز</label><input type="number" id="act-quantity" placeholder="مثال: 3250"></div><div class="form-group"><label>ملاحظات التقييم</label><textarea id="act-note" rows="2"></textarea></div>`;
+                saveBtn.onclick = () => {
+                    const task = document.getElementById('act-task-type').value; const date = document.getElementById('act-date').value; const quantity = document.getElementById('act-quantity').value; const totalQuality = document.getElementById('act-total-quality').innerText;
+                    if (!task || !date || !quantity) return alert("يرجى اختيار المهمة والتاريخ وإدخال العدد");
+                    const breakdown = {}; document.querySelectorAll('.kpi-score').forEach(el => { breakdown[el.id] = el.value; });
+                    saveAction('performance_kpi', empDocId, { date: date, taskType: task, quantity: quantity, quality: totalQuality, breakdown: breakdown, note: document.getElementById('act-note').value });
+                };
+            }
             // --- إضافة قسم تبديل التوكة ---
             else if (type === 'swap') {
                 title.innerText = "طلب تبديل توكة";
@@ -1695,11 +1741,13 @@
         // الدالة الشاملة والوحيدة للتنقل
         window.showView = (v) => {
             // 1. إخفاء جميع الصفحات وإظهار الصفحة المطلوبة
-            ['home', 'employees', 'profile', 'overtime', 'calendar'].forEach(view => { 
+            ['home', 'employees', 'profile', 'overtime', 'calendar', 'stats'].forEach(view => { 
                 const el = document.getElementById(`view-${view}`); 
                 if (el) el.className = (v === view ? '' : 'hidden'); 
             });
-            
+            if (v === 'stats' && typeof renderStatsPage === 'function') {
+                renderStatsPage();
+            }
             // 2. إخفاء القائمة الجانبية (التذكيرات وأعياد الميلاد) في جميع الصفحات ما عدا الرئيسية
             const sideEl = document.getElementById('side-widgets'); 
             if (sideEl) {
@@ -1738,6 +1786,42 @@
                 if(typeof renderMonthlyCalendar === 'function') {
                     renderMonthlyCalendar();
                 }
+            }
+        };
+        window.renderStatsPage = () => {
+            const now = new Date(); const currentMonth = now.getMonth() + 1; const currentYear = now.getFullYear();
+            const monthDisp = document.getElementById('current-month-display'); if(monthDisp) monthDisp.innerText = `شهر: ${currentMonth} / ${currentYear}`;
+
+            let employeePerformance = {};
+            allPerformanceGlobal.forEach(p => {
+                const dateParts = p.date ? p.date.split('-') : [];
+                if(dateParts.length >= 2 && parseInt(dateParts[1]) === currentMonth && parseInt(dateParts[0]) === currentYear) {
+                    if (!employeePerformance[p.empDocId]) { employeePerformance[p.empDocId] = { points: 0, totalQuantity: 0, qualitySum: 0, count: 0 }; }
+                    const qty = parseFloat(p.quantity || 0); const qual = parseFloat(p.quality || 0);
+                    employeePerformance[p.empDocId].points += qty * (qual / 100);
+                    employeePerformance[p.empDocId].totalQuantity += qty;
+                    employeePerformance[p.empDocId].qualitySum += qual;
+                    employeePerformance[p.empDocId].count += 1;
+                }
+            });
+
+            let topQualityId = null; let highestQualityAvg = 0; let topPerformerId = null; let highestPoints = 0;
+            for (const [empId, data] of Object.entries(employeePerformance)) {
+                const avgQual = data.qualitySum / data.count;
+                if (avgQual > highestQualityAvg) { highestQualityAvg = avgQual; topQualityId = empId; }
+                if (data.points > highestPoints) { highestPoints = data.points; topPerformerId = empId; }
+            }
+
+            if (topQualityId) { const emp = allEmployees.find(e => e.id === topQualityId); if (emp) { document.getElementById('top-rated-name').innerText = emp.name; document.getElementById('top-rated-avatar').innerText = emp.name.charAt(0); document.getElementById('top-rated-score').innerText = `${highestQualityAvg.toFixed(1)}%`; } }
+            if (topPerformerId) { const emp = allEmployees.find(e => e.id === topPerformerId); if (emp) { document.getElementById('top-prod-name').innerText = emp.name; document.getElementById('top-prod-avatar').innerText = emp.name.charAt(0); document.getElementById('top-prod-score').innerText = `${highestPoints.toFixed(0)} نقطة`; document.getElementById('top-prod-quality').innerText = `إجمالي المعاملات: ${employeePerformance[topPerformerId].totalQuantity}`; } }
+
+            const allStatsTbody = document.getElementById('all-stats-body');
+            if(allStatsTbody) {
+                let rowsHtml = '';
+                let currentMonthData = allPerformanceGlobal.filter(p => { const dParts = p.date ? p.date.split('-') : []; return dParts[1] == currentMonth && dParts[0] == currentYear; }).sort((a, b) => new Date(b.date) - new Date(a.date));
+                if (currentMonthData.length === 0) { rowsHtml = '<tr><td colspan="5" style="text-align:center;">لا يوجد أي سجلات أداء هذا الشهر</td></tr>'; } 
+                else { currentMonthData.forEach(item => { const empName = allEmployees.find(e => e.id === item.empDocId)?.name || 'غير معروف'; const taskNames = {'calls':'مكالمات', 'messages':'رسائل', 'operations':'عمليات', 'active':'أكتف'}; const taskAr = taskNames[item.taskType] || item.taskType; const calculatedPoints = (parseFloat(item.quantity || 0) * (parseFloat(item.quality || 0)/100)).toFixed(1); rowsHtml += `<tr><td>${item.date}</td><td style="font-weight:bold;">${empName}</td><td style="color:#9b59b6; font-weight:bold;">${taskAr}</td><td><div style="font-size:11px; color:var(--text-muted)">العدد: ${item.quantity} | الجودة: <span style="color:${item.quality>=85?'var(--success)':'var(--danger)'}">${item.quality}%</span></div><div style="font-weight:bold; color:var(--primary);">${calculatedPoints} نقطة أداء</div></td><td style="font-size:11px;">${item.note || '---'}</td></tr>`; }); }
+                allStatsTbody.innerHTML = rowsHtml;
             }
         };
 
@@ -1993,8 +2077,11 @@
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            let unsubscribePerformance = null;
+            let allPerformanceGlobal = [];
         };
     </script>
 </body>
 </html>
+
 
