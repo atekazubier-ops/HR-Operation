@@ -764,7 +764,6 @@
                    if(activeId) viewProfile(activeId);
                 }
             });
-           listenToRequests();
         }
 
         // تم فصل هذه الدالة لتكون خارج startListening (هذا كان سبب المشكلة)
@@ -1671,7 +1670,7 @@
         // الدالة الشاملة والوحيدة للتنقل
         window.showView = (v) => {
             // 1. إخفاء جميع الصفحات وإظهار الصفحة المطلوبة
-            ['home', 'employees', 'profile', 'overtime', 'calendar','requests'].forEach(view => { 
+            ['home', 'employees', 'profile', 'overtime', 'calendar', 'requests'].forEach(view => { 
                 const el = document.getElementById(`view-${view}`); 
                 if (el) el.className = (v === view ? '' : 'hidden'); 
             });
