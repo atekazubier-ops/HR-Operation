@@ -764,6 +764,7 @@
                    if(activeId) viewProfile(activeId);
                 }
             });
+           if (typeof listenToRequests === 'function') listenToRequests();
         }
 
         // تم فصل هذه الدالة لتكون خارج startListening (هذا كان سبب المشكلة)
@@ -2000,7 +2001,8 @@ window.updateRequestsTable = () => {
     if (!tbody) return;
     tbody.innerHTML = "";
     
-    const pendingRequests = allRequestsGlobal.filter(r => r.status === 'pending');
+    // دعم الحقل status و Status (حسب ما يرسله AppSheet)
+    const pendingRequests = allRequestsGlobal.filter(r => r.status === 'pending' || r.Status === 'pending');
     
     if (pendingRequests.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:30px;">لا توجد طلبات معلقة حالياً</td></tr>';
@@ -2008,19 +2010,26 @@ window.updateRequestsTable = () => {
     }
     
     pendingRequests.forEach(req => {
-        let empName = req.empId || req.empDocId || 'غير معروف';
-        const emp = allEmployees.find(e => e.id === req.empDocId || e.empId === req.empId);
-        if (emp) empName = emp.name;
+        // الاعتماد على اسم الموظف القادم من AppSheet
+        let empName = req.Employee_Name || req.empId || 'غير معروف';
+        
+        // ربط الاسم بالملف الشخصي
+        const emp = allEmployees.find(e => e.name === req.Employee_Name || e.id === req.empDocId);
+        if (emp) {
+            empName = emp.name;
+            req.empDocId = emp.id; // نحفظها للاستخدام عند الموافقة
+        }
         
         let details = "";
         let typeBadge = "";
         
-        if (req.type === 'overtime') {
-            typeBadge = '<span class="status-badge" style="background:#e8f5e9; color:#2e7d32;">عمل إضافي</span>';
-            details = `<strong>${req.hours} ساعات</strong> <br><span style="font-size:11px;">السبب: ${req.reason || 'غير محدد'}</span>`;
-        } else if (req.type === 'leave') {
+        // قراءة نوع الطلب من Category
+        if (req.Category === 'leave' || req.type === 'leave') {
             typeBadge = '<span class="status-badge" style="background:#fff3e0; color:#e65100;">إجازة</span>';
-            details = `<strong>${req.leaveType || req.type}</strong> - ${req.daysCount || 1} يوم <br><span style="font-size:11px;">${req.note || ''}</span>`;
+            details = `<strong>${req.Reason || req.leaveType || 'إجازة'}</strong> <br><span style="font-size:11px;">من: ${req.Start_Date || req.date} إلى ${req.End_Date || '---'}</span>`;
+        } else if (req.type === 'overtime') {
+            typeBadge = '<span class="status-badge" style="background:#e8f5e9; color:#2e7d32;">عمل إضافي</span>';
+            details = `<strong>${req.hours} ساعات</strong>`;
         } else {
             typeBadge = '<span class="status-badge" style="background:#f3e5f5; color:#7b1fa2;">أخرى</span>';
             details = `طلب غير مصنف`;
@@ -2031,7 +2040,7 @@ window.updateRequestsTable = () => {
                 <td style="font-weight:bold;">${empName}</td>
                 <td>${typeBadge}</td>
                 <td>${details}</td>
-                <td>${req.date || '---'}</td>
+                <td>${req.Start_Date || req.date || '---'}</td>
                 <td>
                     <button onclick="approveRequest('${req.id}')" class="btn-action" style="background:var(--success); color:white;" title="موافقة"><i class="fas fa-check"></i></button>
                     <button onclick="rejectRequest('${req.id}')" class="btn-action" style="background:var(--danger); color:white;" title="رفض"><i class="fas fa-times"></i></button>
@@ -2051,12 +2060,35 @@ window.approveRequest = async (id) => {
     try {
         let targetEmpDocId = req.empDocId;
         if (!targetEmpDocId) {
-            const emp = allEmployees.find(e => e.empId === req.empId);
+            // البحث عن الموظف بالاسم
+            const emp = allEmployees.find(e => e.name === req.Employee_Name);
             if (emp) targetEmpDocId = emp.id;
-            else targetEmpDocId = req.empId;
+            else {
+                alert("لم يتم العثور على ملف موظف بهذا الاسم، يرجى التأكد من تطابق الاسم المكتوب في AppSheet مع الموقع.");
+                return;
+            }
         }
 
-        if (req.type === 'overtime') {
+        if (req.Category === 'leave' || req.type === 'leave') {
+            // حساب عدد الأيام بين تاريخ البداية والنهاية
+            let dCount = parseFloat(req.daysCount || 1);
+            if (req.Start_Date && req.End_Date) {
+                const d1 = new Date(req.Start_Date);
+                const d2 = new Date(req.End_Date);
+                const diffTime = Math.abs(d2 - d1);
+                dCount = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            }
+
+            const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'leaves');
+            await addDoc(colRef, {
+                empDocId: targetEmpDocId,
+                date: req.Start_Date || req.date,
+                daysCount: dCount,
+                type: req.Reason || req.leaveType || 'سنوية',
+                note: 'موافق عليه من التطبيق (AppSheet)',
+                createdAt: serverTimestamp()
+            });
+        } else if (req.type === 'overtime') {
             const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'overtime');
             await addDoc(colRef, {
                 empDocId: targetEmpDocId,
@@ -2065,20 +2097,15 @@ window.approveRequest = async (id) => {
                 reason: req.reason || 'موافق عليه من التطبيق',
                 createdAt: serverTimestamp()
             });
-        } else if (req.type === 'leave') {
-            const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'leaves');
-            await addDoc(colRef, {
-                empDocId: targetEmpDocId,
-                date: req.date,
-                daysCount: parseFloat(req.daysCount || 1),
-                type: req.leaveType || 'سنوية',
-                note: req.note || 'موافق عليه من التطبيق',
-                createdAt: serverTimestamp()
-            });
         }
         
+        // تحديث الطلب إلى approved
         const reqRef = doc(db, 'artifacts', appId, 'public', 'data', 'requests', id);
-        await updateDoc(reqRef, { status: 'approved', updatedAt: serverTimestamp() });
+        await updateDoc(reqRef, { 
+            status: 'approved', 
+            Status: 'Approved', 
+            updatedAt: serverTimestamp() 
+        });
         
         showToast("✅ تمت الموافقة وإدراج البيانات بنجاح!");
     } catch(e) {
