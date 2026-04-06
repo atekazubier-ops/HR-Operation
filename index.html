@@ -2065,84 +2065,140 @@ window.updateRequestsTable = () => {
 };
 
 // دالة الموافقة (اعتماد صارم على الرقم الوظيفي)
-window.approveRequest = async (id) => {
-    if(!confirm("هل أنت متأكد من الموافقة على هذا الطلب؟ سيتم إدراجه في النظام تلقائياً.")) return;
-    
-    const req = allRequestsGlobal.find(r => r.id === id);
-    if (!req) return;
-    
+// دالة الموافقة الذكية (تفحص التعارضات وتعتمد على الـ ID)
+// ⚠️ ضع الرابط الذي نسخته من Apps Script بين علامتي التنصيص هنا
+const GOOGLE_SCRIPT_URL = "ضع_الرابط_الخاص_بك_هنا"; 
+
+// دالة مساعدة للاتصال بجوجل شيت خفية
+async function notifyAppSheet(empId, date, status, reason = "") {
+    if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("ضع_الرابط")) return; // تجاهل إذا لم يتم وضع الرابط
     try {
-        let targetEmpDocId = req.empDocId;
-        
-        if (!targetEmpDocId) {
-            let reqIdRaw = req.empId || req.empID || req.EmpId || req.ID || ''; 
-            const reqEmpIdStr = String(reqIdRaw).trim();
-
-            const emp = allEmployees.find(e => String(e.empId || "").trim() === reqEmpIdStr);
-
-            if (emp) {
-                targetEmpDocId = emp.id;
-            } else {
-                return alert(`لم يتم العثور على الموظف!\nالرقم الوظيفي في الطلب: ${reqEmpIdStr || 'غير متوفر'}\n\nيرجى التأكد من أن الرقم الوظيفي (ID) المكتوب في التطبيق مطابق تماماً للرقم الموجود في سجل الموظفين.`);
-            }
-        }
-
-        const cat = (req.Category || req.type || '').toLowerCase();
-        
-        if (cat === 'leave' || cat.includes('جاز')) {
-            let dCount = parseFloat(req.daysCount || 1);
-            if (req.Start_Date && req.End_Date) {
-                const d1 = new Date(req.Start_Date);
-                const d2 = new Date(req.End_Date);
-                dCount = Math.ceil(Math.abs(d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
-            }
-            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'leaves'), {
-                empDocId: targetEmpDocId, date: req.Start_Date || req.date, daysCount: dCount,
-                type: req.Reason || 'سنوية', note: 'موافق عليه من التطبيق', createdAt: serverTimestamp()
-            });
-        } 
-        else if (cat === 'permission' || cat.includes('ذن')) {
-            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'permissions'), {
-                empDocId: targetEmpDocId, date: req.Start_Date || req.date,
-                hours: parseFloat(req.Reason || req.hours || 0), createdAt: serverTimestamp()
-            });
-        }
-        else if (cat === 'overtime' || cat.includes('ضاف')) {
-            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'overtime'), {
-                empDocId: targetEmpDocId, date: req.Start_Date || req.date,
-                hours: parseFloat(req.Reason || req.hours || 0), reason: 'موافق عليه من التطبيق', createdAt: serverTimestamp()
-            });
-        }
-        
-        // تحديث حالة الطلب ليعرف AppSheet أنه تمت الموافقة
-        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'requests', id), { 
-            status: 'approved', 
-            Status: 'Approved', 
-            updatedAt: serverTimestamp() 
+        await fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({ empId: empId, date: date, status: status, reason: reason })
         });
-        showToast("✅ تمت الموافقة وإدراج البيانات بنجاح!");
-    } catch(e) { console.error(e); alert("حدث خطأ أثناء الموافقة. يرجى الضغط على F12 ومراجعة الـ Console."); }
+    } catch(e) { console.error("Error notifying AppSheet:", e); }
+}
+
+// 1. دالة إغلاق النافذة
+window.closeActionModal = () => {
+    document.getElementById('actionModal').style.display = 'none';
+    const saveBtn = document.getElementById('btn-action-save');
+    if(saveBtn) {
+        saveBtn.style.background = 'var(--primary)';
+        saveBtn.disabled = false;
+    }
 };
 
-// دالة الرفض
-window.rejectRequest = async (id) => {
-    const reason = prompt("هل أنت متأكد من رفض الطلب؟\nيرجى كتابة سبب الرفض (سيظهر للموظف):");
-    
-    if (reason === null) return; 
+// 2. دالة الموافقة (تقوم بالتسجيل في الموقع + إبلاغ AppSheet)
+window.approveRequest = (id) => {
+    const modal = document.getElementById('actionModal');
+    const title = document.getElementById('action-modal-title');
+    const body = document.getElementById('action-modal-body');
+    const saveBtn = document.getElementById('btn-action-save');
 
-    try {
-        const reqRef = doc(db, 'artifacts', appId, 'public', 'data', 'requests', id);
-        await updateDoc(reqRef, { 
-            status: 'rejected', 
-            Status: 'Rejected',
-            reject_reason: reason, 
-            updatedAt: serverTimestamp() 
-        });
-        showToast("❌ تم رفض الطلب وحفظ السبب.");
-    } catch(e) {
-        console.error(e);
-        alert("حدث خطأ أثناء الرفض.");
-    }
+    title.innerHTML = '<i class="fas fa-check-circle" style="color: var(--success);"></i> تأكيد الموافقة';
+    body.innerHTML = '<p style="font-size: 15px; color: var(--text-muted); font-weight: bold;">هل أنت متأكد من الموافقة على هذا الطلب؟ سيتم إدراجه في النظام وتحديث AppSheet تلقائياً.</p>';
+
+    saveBtn.innerHTML = 'نعم، موافق';
+    saveBtn.style.background = 'var(--success)';
+    saveBtn.style.display = 'flex';
+    modal.style.display = 'flex';
+
+    saveBtn.onclick = async () => {
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التسجيل...';
+        saveBtn.disabled = true;
+        
+        const req = allRequestsGlobal.find(r => r.id === id);
+        if (!req) return closeActionModal();
+        
+        let reqEmpIdStr = String(req.empId || req.empID || req.ID || '').trim();
+        let reqDate = req.Start_Date || req.date;
+
+        try {
+            let targetEmpDocId = req.empDocId;
+            if (!targetEmpDocId) {
+                const emp = allEmployees.find(e => String(e.empId || "").trim() === reqEmpIdStr);
+                if (emp) { targetEmpDocId = emp.id; } 
+                else {
+                    closeActionModal();
+                    return alert(`لم يتم العثور على الموظف (${reqEmpIdStr}) في سجل الموظفين.`);
+                }
+            }
+
+            const cat = (req.Category || req.type || '').toLowerCase();
+            
+            // تسجيل البيانات محلياً في الموقع
+            if (cat === 'leave' || cat.includes('جاز')) {
+                let dCount = parseFloat(req.daysCount || 1);
+                if (req.Start_Date && req.End_Date) {
+                    dCount = Math.ceil(Math.abs(new Date(req.End_Date) - new Date(req.Start_Date)) / (1000 * 60 * 60 * 24)) + 1;
+                }
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'leaves'), { empDocId: targetEmpDocId, date: reqDate, daysCount: dCount, type: req.Reason || 'سنوية', note: 'موافق عليه', createdAt: serverTimestamp() });
+            } 
+            else if (cat === 'permission' || cat.includes('ذن')) {
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'permissions'), { empDocId: targetEmpDocId, date: reqDate, hours: parseFloat(req.Reason || req.hours || 0), createdAt: serverTimestamp() });
+            }
+            else if (cat === 'overtime' || cat.includes('ضاف')) {
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'overtime'), { empDocId: targetEmpDocId, date: reqDate, hours: parseFloat(req.Reason || req.hours || 0), reason: 'موافق عليه', createdAt: serverTimestamp() });
+            }
+            
+            // إخفاء الطلب من الموقع
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'requests', id), { status: 'approved', Status: 'Approved', updatedAt: serverTimestamp() });
+            
+            // 🚀 إرسال التحديث إلى AppSheet!
+            await notifyAppSheet(reqEmpIdStr, reqDate, "Approved");
+
+            closeActionModal(); 
+            showToast("✅ تمت الموافقة وتحديث AppSheet بنجاح!");
+            
+        } catch(e) { 
+            console.error(e); alert("حدث خطأ."); closeActionModal();
+        }
+    };
+};
+
+// 3. دالة الرفض (إبلاغ AppSheet بسبب الرفض)
+window.rejectRequest = (id) => {
+    const modal = document.getElementById('actionModal');
+    const title = document.getElementById('action-modal-title');
+    const body = document.getElementById('action-modal-body');
+    const saveBtn = document.getElementById('btn-action-save');
+
+    title.innerHTML = '<i class="fas fa-times-circle" style="color: var(--danger);"></i> تأكيد الرفض';
+    body.innerHTML = `
+        <p style="font-size: 14px; margin-bottom: 15px; color: var(--text-muted);">يرجى توضيح سبب الرفض (سيظهر للموظف في AppSheet):</p>
+        <div class="form-group"><textarea id="reject-reason-input" rows="3" placeholder="مثال: يوجد ضغط عمل..." style="border: 1px solid var(--danger);"></textarea></div>
+    `;
+
+    saveBtn.innerHTML = 'تأكيد الرفض';
+    saveBtn.style.background = 'var(--danger)';
+    saveBtn.style.display = 'flex';
+    modal.style.display = 'flex'; 
+
+    saveBtn.onclick = async () => {
+        const reason = document.getElementById('reject-reason-input').value.trim();
+        if (!reason) return alert("يرجى كتابة سبب الرفض.");
+
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الرفض...';
+        saveBtn.disabled = true;
+
+        const req = allRequestsGlobal.find(r => r.id === id);
+        let reqEmpIdStr = String(req.empId || req.empID || req.ID || '').trim();
+        let reqDate = req.Start_Date || req.date;
+
+        try {
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'requests', id), { status: 'rejected', Status: 'Rejected', reject_reason: reason, updatedAt: serverTimestamp() });
+            
+            // 🚀 إرسال التحديث وسبب الرفض إلى AppSheet!
+            await notifyAppSheet(reqEmpIdStr, reqDate, "Rejected", reason);
+
+            closeActionModal();
+            showToast("❌ تم رفض الطلب وتحديث AppSheet.");
+        } catch(e) {
+            console.error(e); alert("حدث خطأ."); closeActionModal();
+        }
+    };
 };
     </script>
 </body>
