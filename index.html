@@ -1996,6 +1996,7 @@ window.listenToRequests = () => {
 };
 
 // دالة عرض الطلبات في الجدول
+// دالة عرض الطلبات في الجدول
 window.updateRequestsTable = () => {
     const tbody = document.getElementById('requestsTableBody');
     if (!tbody) return;
@@ -2010,13 +2011,16 @@ window.updateRequestsTable = () => {
     
     pendingRequests.forEach(req => {
         let empName = req.Employee_Name || 'غير معروف';
-        let empIdDisplay = req.empId ? req.empId : '---';
+        // جلب الرقم الوظيفي بشكل آمن
+        let reqIdRaw = req.empId || req.empID || req.EmpId || req.ID || ''; 
+        let empIdDisplay = reqIdRaw ? String(reqIdRaw) : '---';
         
-        // البحث عن الموظف باستخدام الـ ID فقط
-        const emp = allEmployees.find(e => e.empId === req.empId);
+        // البحث عن الموظف عبر الـ ID (مع تحويل الطرفين لنص لتجنب مشاكل الأرقام)
+        const emp = allEmployees.find(e => String(e.empId || '').trim() === String(reqIdRaw).trim());
+        
         if (emp) {
             empName = emp.name;
-            req.empDocId = emp.id; // حفظ الـ Document ID الداخلي للفايربيز
+            req.empDocId = emp.id; // حفظ المعرف الداخلي
         }
         
         let details = "";
@@ -2058,7 +2062,7 @@ window.updateRequestsTable = () => {
     });
 };
 
-// دالة الموافقة (اعتماد كلي على الـ ID)
+// دالة الموافقة الصارمة بناءً على الـ ID
 window.approveRequest = async (id) => {
     if(!confirm("هل أنت متأكد من الموافقة على هذا الطلب؟ سيتم إدراجه في النظام تلقائياً.")) return;
     
@@ -2068,19 +2072,20 @@ window.approveRequest = async (id) => {
     try {
         let targetEmpDocId = req.empDocId;
         
-        // البحث الصارم باستخدام الرقم الوظيفي فقط
+        // البحث الصارم باستخدام الرقم الوظيفي فقط (تحويل آمن للنصوص)
         if (!targetEmpDocId) {
-            const reqEmpId = (req.empId || "").trim();
+            let reqIdRaw = req.empId || req.empID || req.EmpId || req.ID || ''; 
+            const reqEmpIdStr = String(reqIdRaw).trim();
 
             const emp = allEmployees.find(e => {
-                const eEmpId = (e.empId || "").trim();
-                return reqEmpId && eEmpId === reqEmpId; 
+                const eEmpIdStr = String(e.empId || "").trim();
+                return reqEmpIdStr && eEmpIdStr === reqEmpIdStr; 
             });
 
             if (emp) {
                 targetEmpDocId = emp.id;
             } else {
-                return alert(`لم يتم العثور على الموظف!\nالرقم الوظيفي في الطلب: ${reqEmpId || 'غير متوفر'}\n\nيرجى التأكد من أن الرقم الوظيفي (ID) المكتوب في التطبيق مطابق تماماً للرقم الموجود في سجل الموظفين.`);
+                return alert(`لم يتم العثور على الموظف!\nالرقم الوظيفي في الطلب: ${reqEmpIdStr || 'غير متوفر'}\n\nيرجى التأكد من أن الرقم الوظيفي (مثل 297) المكتوب في التطبيق مطابق تماماً للرقم الموجود في سجل الموظفين.`);
             }
         }
 
