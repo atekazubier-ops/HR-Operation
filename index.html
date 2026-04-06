@@ -1996,12 +1996,12 @@ window.listenToRequests = () => {
 };
 
 // دالة عرض الطلبات في الجدول
+// دالة عرض الطلبات في الجدول (تدعم إجازة، إذن، إضافي)
 window.updateRequestsTable = () => {
     const tbody = document.getElementById('requestsTableBody');
     if (!tbody) return;
     tbody.innerHTML = "";
     
-    // دعم الحقل status و Status (حسب ما يرسله AppSheet)
     const pendingRequests = allRequestsGlobal.filter(r => r.status === 'pending' || r.Status === 'pending');
     
     if (pendingRequests.length === 0) {
@@ -2010,29 +2010,37 @@ window.updateRequestsTable = () => {
     }
     
     pendingRequests.forEach(req => {
-        // الاعتماد على اسم الموظف القادم من AppSheet
         let empName = req.Employee_Name || req.empId || 'غير معروف';
-        
-        // ربط الاسم بالملف الشخصي
         const emp = allEmployees.find(e => e.name === req.Employee_Name || e.id === req.empDocId);
         if (emp) {
             empName = emp.name;
-            req.empDocId = emp.id; // نحفظها للاستخدام عند الموافقة
+            req.empDocId = emp.id;
         }
         
         let details = "";
         let typeBadge = "";
+        const cat = (req.Category || req.type || '').toLowerCase();
         
-        // قراءة نوع الطلب من Category
-        if (req.Category === 'leave' || req.type === 'leave') {
+        // --- 1. حالة الإجازة ---
+        if (cat === 'leave' || cat.includes('إجازة')) {
             typeBadge = '<span class="status-badge" style="background:#fff3e0; color:#e65100;">إجازة</span>';
-            details = `<strong>${req.Reason || req.leaveType || 'إجازة'}</strong> <br><span style="font-size:11px;">من: ${req.Start_Date || req.date} إلى ${req.End_Date || '---'}</span>`;
-        } else if (req.type === 'overtime') {
+            details = `<strong>${req.Reason || 'سنوية'}</strong> <br><span style="font-size:11px;">من: ${req.Start_Date || req.date} إلى ${req.End_Date || '---'}</span>`;
+        } 
+        // --- 2. حالة الإذن ---
+        else if (cat === 'permission' || cat.includes('إذن')) {
+            typeBadge = '<span class="status-badge" style="background:#e3f2fd; color:#1976d2;">إذن خروج</span>';
+            // نفترض أن عدد الساعات مكتوب في حقل Reason إذا جاء من AppSheet
+            details = `<strong>${req.Reason || req.hours || '0'} ساعات</strong> <br><span style="font-size:11px;">تاريخ: ${req.Start_Date || req.date}</span>`;
+        } 
+        // --- 3. حالة الإضافي ---
+        else if (cat === 'overtime' || cat.includes('إضافي')) {
             typeBadge = '<span class="status-badge" style="background:#e8f5e9; color:#2e7d32;">عمل إضافي</span>';
-            details = `<strong>${req.hours} ساعات</strong>`;
-        } else {
+            details = `<strong>${req.Reason || req.hours || '0'} ساعات</strong> <br><span style="font-size:11px;">تاريخ: ${req.Start_Date || req.date}</span>`;
+        } 
+        // --- غير مصنف ---
+        else {
             typeBadge = '<span class="status-badge" style="background:#f3e5f5; color:#7b1fa2;">أخرى</span>';
-            details = `طلب غير مصنف`;
+            details = `طلب غير مصنف: ${cat}`;
         }
         
         tbody.innerHTML += `
@@ -2050,7 +2058,7 @@ window.updateRequestsTable = () => {
     });
 };
 
-// دالة الموافقة وتحويل الطلب
+// دالة الموافقة وتحويل الطلب للمكان الصحيح (إجازة، إذن، إضافي)
 window.approveRequest = async (id) => {
     if(!confirm("هل أنت متأكد من الموافقة على هذا الطلب؟ سيتم إدراجه في النظام تلقائياً.")) return;
     
@@ -2060,67 +2068,62 @@ window.approveRequest = async (id) => {
     try {
         let targetEmpDocId = req.empDocId;
         if (!targetEmpDocId) {
-            // البحث عن الموظف بالاسم
             const emp = allEmployees.find(e => e.name === req.Employee_Name);
             if (emp) targetEmpDocId = emp.id;
-            else {
-                alert("لم يتم العثور على ملف موظف بهذا الاسم، يرجى التأكد من تطابق الاسم المكتوب في AppSheet مع الموقع.");
-                return;
-            }
+            else return alert("لم يتم العثور على ملف موظف بهذا الاسم.");
         }
 
-        if (req.Category === 'leave' || req.type === 'leave') {
-            // حساب عدد الأيام بين تاريخ البداية والنهاية
+        const cat = (req.Category || req.type || '').toLowerCase();
+        
+        if (cat === 'leave' || cat.includes('إجازة')) {
             let dCount = parseFloat(req.daysCount || 1);
             if (req.Start_Date && req.End_Date) {
                 const d1 = new Date(req.Start_Date);
                 const d2 = new Date(req.End_Date);
-                const diffTime = Math.abs(d2 - d1);
-                dCount = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                dCount = Math.ceil(Math.abs(d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
             }
-
-            const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'leaves');
-            await addDoc(colRef, {
-                empDocId: targetEmpDocId,
-                date: req.Start_Date || req.date,
-                daysCount: dCount,
-                type: req.Reason || req.leaveType || 'سنوية',
-                note: 'موافق عليه من التطبيق (AppSheet)',
-                createdAt: serverTimestamp()
+            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'leaves'), {
+                empDocId: targetEmpDocId, date: req.Start_Date || req.date, daysCount: dCount,
+                type: req.Reason || 'سنوية', note: 'موافق عليه من التطبيق', createdAt: serverTimestamp()
             });
-        } else if (req.type === 'overtime') {
-            const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'overtime');
-            await addDoc(colRef, {
-                empDocId: targetEmpDocId,
-                date: req.date,
-                hours: parseFloat(req.hours || 0),
-                reason: req.reason || 'موافق عليه من التطبيق',
-                createdAt: serverTimestamp()
+        } 
+        else if (cat === 'permission' || cat.includes('إذن')) {
+            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'permissions'), {
+                empDocId: targetEmpDocId, date: req.Start_Date || req.date,
+                hours: parseFloat(req.Reason || req.hours || 0), createdAt: serverTimestamp()
+            });
+        }
+        else if (cat === 'overtime' || cat.includes('إضافي')) {
+            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'overtime'), {
+                empDocId: targetEmpDocId, date: req.Start_Date || req.date,
+                hours: parseFloat(req.Reason || req.hours || 0), reason: 'موافق عليه من التطبيق', createdAt: serverTimestamp()
             });
         }
         
-        // تحديث الطلب إلى approved
-        const reqRef = doc(db, 'artifacts', appId, 'public', 'data', 'requests', id);
-        await updateDoc(reqRef, { 
-            status: 'approved', 
-            Status: 'Approved', 
-            updatedAt: serverTimestamp() 
+        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'requests', id), { 
+            status: 'approved', Status: 'Approved', updatedAt: serverTimestamp() 
         });
-        
         showToast("✅ تمت الموافقة وإدراج البيانات بنجاح!");
-    } catch(e) {
-        console.error(e);
-        alert("حدث خطأ أثناء الموافقة. تأكد من الصلاحيات.");
-    }
+    } catch(e) { console.error(e); alert("حدث خطأ أثناء الموافقة."); }
 };
 
-// دالة الرفض
+// دالة الرفض (مع إرفاق السبب)
 window.rejectRequest = async (id) => {
-    if(!confirm("هل أنت متأكد من رفض هذا الطلب نهائياً؟")) return;
+    // فتح نافذة منبثقة تطلب من المدير كتابة سبب الرفض
+    const reason = prompt("هل أنت متأكد من رفض الطلب؟\nيرجى كتابة سبب الرفض (سيظهر للموظف):");
+    
+    // إذا ضغط المدير على "إلغاء" (Cancel)، يتم إيقاف العملية
+    if (reason === null) return; 
+
     try {
         const reqRef = doc(db, 'artifacts', appId, 'public', 'data', 'requests', id);
-        await updateDoc(reqRef, { status: 'rejected', updatedAt: serverTimestamp() });
-        showToast("❌ تم رفض الطلب.");
+        // تحديث حالة الطلب إلى مرفوض، وحفظ سبب الرفض في قاعدة البيانات
+        await updateDoc(reqRef, { 
+            status: 'rejected', 
+            reject_reason: reason, // تم إضافة حقل سبب الرفض هنا
+            updatedAt: serverTimestamp() 
+        });
+        showToast("❌ تم رفض الطلب وحفظ السبب.");
     } catch(e) {
         console.error(e);
         alert("حدث خطأ أثناء الرفض.");
