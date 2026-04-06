@@ -1996,7 +1996,6 @@ window.listenToRequests = () => {
 };
 
 // دالة عرض الطلبات في الجدول
-// دالة عرض الطلبات في الجدول (تدعم إجازة، إذن، إضافي)
 window.updateRequestsTable = () => {
     const tbody = document.getElementById('requestsTableBody');
     if (!tbody) return;
@@ -2010,34 +2009,32 @@ window.updateRequestsTable = () => {
     }
     
     pendingRequests.forEach(req => {
-        let empName = req.Employee_Name || req.empId || 'غير معروف';
-        const emp = allEmployees.find(e => e.name === req.Employee_Name || e.id === req.empDocId);
+        let empName = req.Employee_Name || 'غير معروف';
+        let empIdDisplay = req.empId ? req.empId : '---';
+        
+        // البحث عن الموظف باستخدام الـ ID فقط
+        const emp = allEmployees.find(e => e.empId === req.empId);
         if (emp) {
             empName = emp.name;
-            req.empDocId = emp.id;
+            req.empDocId = emp.id; // حفظ الـ Document ID الداخلي للفايربيز
         }
         
         let details = "";
         let typeBadge = "";
         const cat = (req.Category || req.type || '').toLowerCase();
         
-        // --- 1. حالة الإجازة ---
         if (cat === 'leave' || cat.includes('إجازة')) {
             typeBadge = '<span class="status-badge" style="background:#fff3e0; color:#e65100;">إجازة</span>';
             details = `<strong>${req.Reason || 'سنوية'}</strong> <br><span style="font-size:11px;">من: ${req.Start_Date || req.date} إلى ${req.End_Date || '---'}</span>`;
         } 
-        // --- 2. حالة الإذن ---
         else if (cat === 'permission' || cat.includes('إذن')) {
             typeBadge = '<span class="status-badge" style="background:#e3f2fd; color:#1976d2;">إذن خروج</span>';
-            // نفترض أن عدد الساعات مكتوب في حقل Reason إذا جاء من AppSheet
             details = `<strong>${req.Reason || req.hours || '0'} ساعات</strong> <br><span style="font-size:11px;">تاريخ: ${req.Start_Date || req.date}</span>`;
         } 
-        // --- 3. حالة الإضافي ---
         else if (cat === 'overtime' || cat.includes('إضافي')) {
             typeBadge = '<span class="status-badge" style="background:#e8f5e9; color:#2e7d32;">عمل إضافي</span>';
             details = `<strong>${req.Reason || req.hours || '0'} ساعات</strong> <br><span style="font-size:11px;">تاريخ: ${req.Start_Date || req.date}</span>`;
         } 
-        // --- غير مصنف ---
         else {
             typeBadge = '<span class="status-badge" style="background:#f3e5f5; color:#7b1fa2;">أخرى</span>';
             details = `طلب غير مصنف: ${cat}`;
@@ -2045,7 +2042,10 @@ window.updateRequestsTable = () => {
         
         tbody.innerHTML += `
             <tr>
-                <td style="font-weight:bold;">${empName}</td>
+                <td>
+                    <div style="font-weight:bold;">${empName}</div>
+                    <div style="font-size:11px; color:var(--text-muted);">${empIdDisplay}</div>
+                </td>
                 <td>${typeBadge}</td>
                 <td>${details}</td>
                 <td>${req.Start_Date || req.date || '---'}</td>
@@ -2058,7 +2058,7 @@ window.updateRequestsTable = () => {
     });
 };
 
-// دالة الموافقة وتحويل الطلب للمكان الصحيح (إجازة، إذن، إضافي)
+// دالة الموافقة (اعتماد كلي على الـ ID)
 window.approveRequest = async (id) => {
     if(!confirm("هل أنت متأكد من الموافقة على هذا الطلب؟ سيتم إدراجه في النظام تلقائياً.")) return;
     
@@ -2067,10 +2067,21 @@ window.approveRequest = async (id) => {
     
     try {
         let targetEmpDocId = req.empDocId;
+        
+        // البحث الصارم باستخدام الرقم الوظيفي فقط
         if (!targetEmpDocId) {
-            const emp = allEmployees.find(e => e.name === req.Employee_Name);
-            if (emp) targetEmpDocId = emp.id;
-            else return alert("لم يتم العثور على ملف موظف بهذا الاسم.");
+            const reqEmpId = (req.empId || "").trim();
+
+            const emp = allEmployees.find(e => {
+                const eEmpId = (e.empId || "").trim();
+                return reqEmpId && eEmpId === reqEmpId; 
+            });
+
+            if (emp) {
+                targetEmpDocId = emp.id;
+            } else {
+                return alert(`لم يتم العثور على الموظف!\nالرقم الوظيفي في الطلب: ${reqEmpId || 'غير متوفر'}\n\nيرجى التأكد من أن الرقم الوظيفي (ID) المكتوب في التطبيق مطابق تماماً للرقم الموجود في سجل الموظفين.`);
+            }
         }
 
         const cat = (req.Category || req.type || '').toLowerCase();
@@ -2104,30 +2115,7 @@ window.approveRequest = async (id) => {
             status: 'approved', Status: 'Approved', updatedAt: serverTimestamp() 
         });
         showToast("✅ تمت الموافقة وإدراج البيانات بنجاح!");
-    } catch(e) { console.error(e); alert("حدث خطأ أثناء الموافقة."); }
-};
-
-// دالة الرفض (مع إرفاق السبب)
-window.rejectRequest = async (id) => {
-    // فتح نافذة منبثقة تطلب من المدير كتابة سبب الرفض
-    const reason = prompt("هل أنت متأكد من رفض الطلب؟\nيرجى كتابة سبب الرفض (سيظهر للموظف):");
-    
-    // إذا ضغط المدير على "إلغاء" (Cancel)، يتم إيقاف العملية
-    if (reason === null) return; 
-
-    try {
-        const reqRef = doc(db, 'artifacts', appId, 'public', 'data', 'requests', id);
-        // تحديث حالة الطلب إلى مرفوض، وحفظ سبب الرفض في قاعدة البيانات
-        await updateDoc(reqRef, { 
-            status: 'rejected', 
-            reject_reason: reason, // تم إضافة حقل سبب الرفض هنا
-            updatedAt: serverTimestamp() 
-        });
-        showToast("❌ تم رفض الطلب وحفظ السبب.");
-    } catch(e) {
-        console.error(e);
-        alert("حدث خطأ أثناء الرفض.");
-    }
+    } catch(e) { console.error(e); alert("حدث خطأ أثناء الموافقة. راجع الـ Console."); }
 };
     </script>
 </body>
